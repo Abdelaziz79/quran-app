@@ -1,6 +1,11 @@
 "use client";
 
 import AudioPlayer from "@/app/_components/AudioPlayer";
+import { AyahVerse } from "@/app/_components/AyahVerse";
+import ErrorComp from "@/app/_components/ErrorComp";
+import Loading from "@/app/_components/Loading";
+import { getSurahAudioVerseByVerse } from "@/app/_hooks/AlQuranApi";
+import { useQuranAudioContext } from "@/app/_hooks/QuranAudioProvider";
 import { useBookmarks } from "@/app/_hooks/useBookmarks";
 import {
   usePaginatedSurahDetail,
@@ -8,43 +13,17 @@ import {
   useSurahTranslation,
 } from "@/app/_hooks/useQuranData";
 import { useTheme } from "@/app/_hooks/useTheme";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Bookmark,
-  CheckCircle2,
-  ChevronRight,
-  Copy,
-  Maximize2,
-  MoreHorizontal,
-  Share,
-  Volume2,
-} from "lucide-react";
+import { toArabicDigits } from "@/app/_lib/quranUtils";
+import { Bookmark, ChevronRight, Maximize2, Volume2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-
-// Function to convert Western digits to Arabic digits
-const toArabicDigits = (num: number): string => {
-  if (num === 0) return ""; // If the number is just 0, return empty string
-
-  const arabicDigits = ["٠", "١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩"];
-  return num
-    .toString()
-    .split("")
-    .map((digit) => arabicDigits[parseInt(digit)])
-    .join("");
-};
 
 export function SurahReader({ surahId }: { surahId: string }) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const ayahParam = searchParams.get("ayah");
+
   const initialAyah = ayahParam ? parseInt(ayahParam) : null;
 
   const { surahs } = useSurahList();
@@ -56,8 +35,24 @@ export function SurahReader({ surahId }: { surahId: string }) {
   const { isVerseBookmarked, toggleBookmark } = useBookmarks(surahs);
   const { theme } = useTheme();
 
-  // Use the pagination hooks from useVersePages
-  const { visibleVerses: verses, loadMore, hasMore } = useVersePages();
+  const {
+    isVerseByVerseMode,
+    setCurrentVerse,
+    currentVerse,
+    verseAudioUrls,
+    audioPlayer,
+    setIsVerseByVerseMode,
+    setVerseAudioUrls,
+    selectedAudioEdition,
+    setCurrentSurah,
+  } = useQuranAudioContext();
+
+  const {
+    visibleVerses: verses,
+    loadMore,
+    hasMore,
+    ensureVerseIsLoaded,
+  } = useVersePages();
 
   const [showTranslation, setShowTranslation] = useState(false);
   const [activeVerse, setActiveVerse] = useState<number | null>(initialAyah);
@@ -68,10 +63,14 @@ export function SurahReader({ surahId }: { surahId: string }) {
     initialAyah
   );
   const [initialScrollDone, setInitialScrollDone] = useState(false);
+  const [openDropdownVerseId, setOpenDropdownVerseId] = useState<number | null>(
+    null
+  );
 
   const verseRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadingRef = useRef<HTMLDivElement | null>(null);
+  const isRecitingVerse = useRef(false);
 
   // Set up intersection observer for infinite scrolling
   useEffect(() => {
@@ -79,52 +78,70 @@ export function SurahReader({ surahId }: { surahId: string }) {
       observerRef.current = new IntersectionObserver(
         (entries) => {
           if (entries[0].isIntersecting) {
+            // Load multiple pages at once for smoother experience
             loadMore();
+            // Try to load one more batch if available
+            setTimeout(() => {
+              if (hasMore) loadMore();
+            }, 100);
           }
         },
         { threshold: 0.5 }
       );
-
       observerRef.current.observe(loadingRef.current);
-
-      return () => {
-        if (observerRef.current) {
-          observerRef.current.disconnect();
-        }
-      };
+      return () => observerRef.current?.disconnect();
     }
   }, [hasMore, loadMore]);
 
-  // Add useEffect to handle URL parameter changes
+  // Initial load of ayah if specified in URL
   useEffect(() => {
-    // Only run this after initial load and when verses are available
+    if (initialAyah && !initialScrollDone && verses.length > 0) {
+      ensureVerseIsLoaded(initialAyah);
+    }
+  }, [initialAyah, initialScrollDone, ensureVerseIsLoaded, verses.length]);
+
+  // Handle initial scroll and URL parameter changes
+  useEffect(() => {
     if (verses.length === 0 || initialScrollDone) return;
 
-    // If initial ayah is set from URL, handle initial scroll
-    if (initialAyah && verseRefs.current[initialAyah]) {
+    if (initialAyah) {
+      // Ensure the requested ayah is loaded
+      const wasLoaded = ensureVerseIsLoaded(initialAyah);
+
+      // If we had to load more verses, wait for next render when they're available
+      if (wasLoaded) {
+        return;
+      }
+
       setTimeout(() => {
         const verseElement = verseRefs.current[initialAyah];
         if (verseElement) {
-          verseElement.scrollIntoView({
-            behavior: "smooth",
-            block: "center",
-          });
+          verseElement.scrollIntoView({ behavior: "smooth", block: "center" });
           setActiveVerse(initialAyah);
-
-          // Only set highlighted bookmark if it's actually bookmarked
-          if (isVerseBookmarked(surahId, initialAyah)) {
-            setHighlightedBookmark(initialAyah);
+          if (isVerseByVerseMode) {
+            setCurrentVerse(initialAyah);
           }
+          if (isVerseBookmarked(surahId, initialAyah))
+            setHighlightedBookmark(initialAyah);
 
-          // Mark initial scroll as complete
           setInitialScrollDone(true);
+        } else {
+          // If verse element not found yet, try once more in next render cycle
+          // This helps when direct URL navigation occurs
+          setTimeout(() => {
+            const verseElement = verseRefs.current[initialAyah];
+            if (verseElement) {
+              verseElement.scrollIntoView({
+                behavior: "smooth",
+                block: "center",
+              });
+              setInitialScrollDone(true);
+            }
+          }, 500);
         }
       }, 300);
-    } else {
-      // If no initial ayah or it's not found yet, mark as done if we have verses
-      if (verses.length > 0) {
-        setInitialScrollDone(true);
-      }
+    } else if (verses.length > 0) {
+      setInitialScrollDone(true);
     }
   }, [
     initialAyah,
@@ -132,145 +149,178 @@ export function SurahReader({ surahId }: { surahId: string }) {
     surahId,
     initialScrollDone,
     isVerseBookmarked,
+    isVerseByVerseMode,
+    setCurrentVerse,
+    ensureVerseIsLoaded,
   ]);
 
-  // Reset scroll state when surah changes
+  // Scroll to current verse during verse-by-verse audio playback
   useEffect(() => {
-    // Clear highlighted bookmark and reset scroll state when changing surahs
+    if (isVerseByVerseMode && currentVerse && verseRefs.current[currentVerse]) {
+      verseRefs.current[currentVerse]?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+      setActiveVerse(currentVerse);
+
+      router.replace(`/surah/${surahId}?ayah=${currentVerse}`, {
+        scroll: false,
+      });
+    }
+  }, [currentVerse, isVerseByVerseMode, router, surahId]);
+
+  // Reset scroll state on surah change
+  useEffect(() => {
     return () => {
       setHighlightedBookmark(null);
       setInitialScrollDone(false);
     };
   }, [surahId]);
 
-  // Function to handle showing/hiding translation
-  const handleToggleTranslation = () => {
-    setShowTranslation(!showTranslation);
-  };
+  // Auto-play verse after audio URLs are loaded
+  useEffect(() => {
+    if (
+      isRecitingVerse.current &&
+      isVerseByVerseMode &&
+      verseAudioUrls.length > 0 &&
+      currentVerse
+    ) {
+      isRecitingVerse.current = false;
+      audioPlayer.play(verseAudioUrls[currentVerse - 1]);
+    }
+  }, [isVerseByVerseMode, verseAudioUrls, currentVerse, audioPlayer]);
 
-  // Function to handle reading mode
-  const handleReadingMode = () => {
-    setReadingMode(!readingMode);
-  };
+  // Ensure audio player has URLs when shown
+  useEffect(() => {
+    if (
+      showAudioPlayer &&
+      isVerseByVerseMode &&
+      currentVerse &&
+      verseAudioUrls.length === 0 &&
+      selectedAudioEdition
+    ) {
+      const urls = getSurahAudioVerseByVerse(
+        parseInt(surahId),
+        selectedAudioEdition
+      );
 
-  // Function to handle audio player visibility
-  const handleToggleAudioPlayer = () => {
-    setShowAudioPlayer(!showAudioPlayer);
-  };
+      setVerseAudioUrls(urls);
+    }
+  }, [
+    showAudioPlayer,
+    isVerseByVerseMode,
+    currentVerse,
+    verseAudioUrls.length,
+    selectedAudioEdition,
+    surahId,
+    setVerseAudioUrls,
+  ]);
 
-  // Function to handle verse click
+  const handleToggleTranslation = () => setShowTranslation(!showTranslation);
+  const handleReadingMode = () => setReadingMode(!readingMode);
+  const handleToggleAudioPlayer = () => setShowAudioPlayer(!showAudioPlayer);
+
   function handleVerseClick(verseId: number) {
-    // Toggle verse selection
     if (activeVerse === verseId) {
       setActiveVerse(null);
-      // Remove ayah parameter from URL
       router.replace(`/surah/${surahId}`, { scroll: false });
     } else {
       setActiveVerse(verseId);
-      // Update URL with the new ayah
+
       router.replace(`/surah/${surahId}?ayah=${verseId}`, { scroll: false });
+      if (
+        isVerseByVerseMode &&
+        showAudioPlayer &&
+        verseAudioUrls.length >= verseId
+      ) {
+        setCurrentVerse(verseId);
+      }
     }
   }
 
-  // Function to copy verse
   function copyVerse(verseId: number, verseText: string) {
     const surahName = metadata?.titleAr || "";
-    const textToCopy = `${surahName} (${surahId}:${toArabicDigits(
-      verseId
-    )})\n${verseText}`;
-
+    const textToCopy = `${surahName} (${toArabicDigits(
+      parseInt(surahId)
+    )}:${toArabicDigits(verseId)})\n${verseText}`;
     navigator.clipboard.writeText(textToCopy).then(() => {
       setCopiedVerse(verseId);
       setTimeout(() => setCopiedVerse(null), 2000);
     });
   }
 
-  // Function to bookmark verse - now passes verse text
   function handleToggleBookmark(verseId: number, verseText: string) {
     const isCurrentlyBookmarked = isVerseBookmarked(surahId, verseId);
     toggleBookmark(surahId, verseId, verseText);
-
-    // If adding bookmark, highlight it (but don't interfere with active verse)
     if (!isCurrentlyBookmarked) {
       setHighlightedBookmark(verseId);
     } else if (highlightedBookmark === verseId) {
-      // If removing currently highlighted bookmark, clear highlight
       setHighlightedBookmark(null);
     }
   }
 
-  // Function to share verse (if Web Share API is available)
   function shareVerse(verseId: number, verseText: string) {
     const surahName = metadata?.titleAr || "";
     const textToShare = `${surahName} (${surahId}:${toArabicDigits(
       verseId
     )})\n${verseText}`;
-
     if (navigator.share) {
       navigator
         .share({
-          title: `${surahName} - آية ${toArabicDigits(verseId)}`,
+          title: `${toArabicDigits(parseInt(surahId))} - آية ${toArabicDigits(
+            verseId
+          )}`,
           text: textToShare,
           url: window.location.href,
         })
         .catch((err) => console.error("Error sharing:", err));
     } else {
-      // Fallback to copy if share API is not available
       copyVerse(verseId, verseText);
     }
   }
 
-  // Get appropriate reading mode classes based on theme
-  const getReadingModeClasses = () => {
-    if (!readingMode) return "";
+  function reciteVerse(verseId: number) {
+    setOpenDropdownVerseId(null);
+    setShowAudioPlayer(true);
+    setIsVerseByVerseMode(true);
+    isRecitingVerse.current = true;
+    setCurrentSurah(parseInt(surahId));
 
-    return theme === "dark"
-      ? "reading-mode bg-zinc-900 text-amber-50"
-      : "reading-mode bg-amber-50 text-zinc-900";
-  };
+    setCurrentVerse(verseId);
+    setActiveVerse(verseId);
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center min-h-[70vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-      </div>
+    const urls = getSurahAudioVerseByVerse(
+      parseInt(surahId),
+      selectedAudioEdition ?? {
+        identifier: "ar.husary",
+        availableBitrates: [64, 128],
+      }
     );
+    setVerseAudioUrls(urls);
+
+    router.replace(`/surah/${surahId}?ayah=${verseId}`, { scroll: false });
+    verseRefs.current[verseId]?.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+    });
+    if (urls.length >= verseId) {
+      setTimeout(() => {
+        audioPlayer.play(urls[verseId - 1]);
+        isRecitingVerse.current = false;
+      }, 100);
+    }
   }
 
-  if (error) {
-    return (
-      <div className="container mx-auto py-8">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold mb-4">حدث خطأ</h2>
-          <p className="text-muted-foreground mb-6">{error}</p>
-          <Link
-            href="/"
-            className="px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-          >
-            العودة إلى الصفحة الرئيسية
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  const getReadingModeClasses = () =>
+    readingMode
+      ? theme === "dark"
+        ? "reading-mode bg-zinc-900 text-amber-50"
+        : "reading-mode bg-amber-50 text-zinc-900"
+      : "";
 
-  if (!metadata) {
-    return (
-      <div className="container mx-auto py-8">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold">
-            عذراً، لم يتم العثور على السورة
-          </h2>
-          <Link
-            href="/"
-            className="mt-4 inline-block text-primary hover:underline"
-          >
-            العودة إلى الصفحة الرئيسية
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  if (isLoading) return <Loading />;
+  if (error) return <ErrorComp error={error} />;
+  if (!metadata) return <ErrorComp error="عذراً، لم يتم العثور على السورة" />;
 
   return (
     <div
@@ -285,7 +335,6 @@ export function SurahReader({ surahId }: { surahId: string }) {
             <ChevronRight className="ml-1 h-4 w-4" />
             <span>العودة إلى قائمة السور</span>
           </Link>
-
           <div className="flex items-center gap-4">
             <Link
               href="/bookmarks"
@@ -300,7 +349,6 @@ export function SurahReader({ surahId }: { surahId: string }) {
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold mb-2">{metadata.titleAr}</h1>
           <p className="text-lg text-muted-foreground">{metadata.title}</p>
-
           <div className="mt-4 flex flex-wrap gap-2 justify-center">
             <button
               onClick={handleToggleTranslation}
@@ -308,7 +356,6 @@ export function SurahReader({ surahId }: { surahId: string }) {
             >
               {showTranslation ? "إخفاء التفسير" : "إظهار التفسير"}
             </button>
-
             <button
               onClick={handleReadingMode}
               className="px-4 py-2 rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/90 transition-colors flex items-center gap-1"
@@ -316,23 +363,24 @@ export function SurahReader({ surahId }: { surahId: string }) {
               <Maximize2 size={16} />
               {readingMode ? "إنهاء وضع القراءة" : "وضع القراءة"}
             </button>
-
             <button
               onClick={handleToggleAudioPlayer}
               className="px-4 py-2 rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/90 transition-colors flex items-center gap-1"
             >
               <Volume2 size={16} />
-              {showAudioPlayer ? "إخفاء القراءة الصوتية" : "الاستماع للقراءة"}
+              {showAudioPlayer ? "إنهاء الاستماع" : "الاستماع للقراءة"}
             </button>
           </div>
-
           {translationError && showTranslation && (
             <div className="mt-2 text-sm text-red-500">{translationError}</div>
           )}
-
           {showAudioPlayer && (
             <div className="mt-6">
-              <AudioPlayer surahId={parseInt(surahId)} />
+              <AudioPlayer
+                onVisibilityChange={(isVisible) =>
+                  setShowAudioPlayer(isVisible)
+                }
+              />
             </div>
           )}
         </div>
@@ -340,154 +388,37 @@ export function SurahReader({ surahId }: { surahId: string }) {
 
       <div className="space-y-6">
         {verses.map((verse) => (
-          <div
+          <AyahVerse
             key={verse.id}
-            id={`verse-${verse.id}`}
-            ref={(el) => {
+            verse={verse}
+            translationText={translation[verse.id]}
+            showTranslation={showTranslation}
+            isActive={activeVerse === verse.id}
+            isBookmarked={isVerseBookmarked(surahId, verse.id)}
+            isHighlightedBookmark={highlightedBookmark === verse.id}
+            readingMode={readingMode}
+            theme={theme}
+            isCopied={copiedVerse === verse.id}
+            dropdownOpen={openDropdownVerseId === verse.id}
+            onVerseClick={handleVerseClick}
+            onCopy={copyVerse}
+            onToggleBookmark={handleToggleBookmark}
+            onShare={shareVerse}
+            onRecite={reciteVerse}
+            onDropdownToggle={(isOpen) => {
+              if (isOpen) {
+                setOpenDropdownVerseId(verse.id);
+              } else if (openDropdownVerseId === verse.id) {
+                // Only close if it's this one
+                setOpenDropdownVerseId(null);
+              }
+            }}
+            setVerseRef={(el) => {
               verseRefs.current[verse.id] = el;
             }}
-            className={`verse-container transition-colors ${
-              activeVerse === verse.id
-                ? "bg-primary/10 ring-1 ring-primary rounded-lg"
-                : ""
-            } ${readingMode ? "my-8" : ""} ${
-              isVerseBookmarked(surahId, verse.id)
-                ? "border-r-4 border-primary"
-                : ""
-            } ${
-              highlightedBookmark === verse.id && activeVerse !== verse.id
-                ? "bg-amber-100/50 dark:bg-amber-900/20"
-                : ""
-            }`}
-            onClick={() => handleVerseClick(verse.id)}
-          >
-            <div
-              className={`${
-                readingMode
-                  ? "bg-transparent shadow-none border-none p-2"
-                  : "bg-card rounded-lg p-6 shadow-sm border border-border"
-              } cursor-pointer relative`}
-            >
-              <div className="flex items-start">
-                {verse.id !== 0 && (
-                  <span
-                    className={`flex items-center justify-center w-8 h-8 rounded-full ${
-                      readingMode
-                        ? theme === "dark"
-                          ? "bg-zinc-800 text-amber-400"
-                          : "bg-amber-100 text-amber-800"
-                        : "bg-primary/10 text-primary"
-                    } text-sm font-medium ml-3 mt-1 relative`}
-                  >
-                    {toArabicDigits(verse.id)}
-                    {isVerseBookmarked(surahId, verse.id) && (
-                      <Bookmark
-                        size={12}
-                        className="absolute -top-1 -right-1 fill-primary text-primary"
-                      />
-                    )}
-                  </span>
-                )}
-                <div className="flex-1">
-                  <p
-                    className={`${
-                      readingMode ? "text-2xl" : "text-xl"
-                    } leading-relaxed font-quran`}
-                  >
-                    {verse.text}
-                  </p>
-
-                  {showTranslation && translation[verse.id] && (
-                    <div className="mt-4 pt-4 border-t border-border">
-                      <p
-                        className={`${
-                          readingMode ? "text-lg" : ""
-                        } text-muted-foreground`}
-                      >
-                        {translation[verse.id]}
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                {!readingMode && (
-                  <div className="relative" dir="ltr">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <button
-                          className="p-2 rounded-full hover:bg-muted transition-colors"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <MoreHorizontal size={16} />
-                        </button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-48">
-                        <div className="text-right">
-                          <DropdownMenuItem
-                            onClick={(e) => {
-                              e.preventDefault();
-                              copyVerse(verse.id, verse.text);
-                            }}
-                            className="cursor-pointer flex flex-row-reverse gap-2 items-center"
-                          >
-                            {copiedVerse === verse.id ? (
-                              <>
-                                <CheckCircle2
-                                  size={16}
-                                  className="text-green-500"
-                                />
-                                <span>تم النسخ</span>
-                              </>
-                            ) : (
-                              <>
-                                <Copy size={16} />
-                                <span>نسخ الآية</span>
-                              </>
-                            )}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={(e) => {
-                              e.preventDefault();
-                              handleToggleBookmark(verse.id, verse.text);
-                            }}
-                            className="cursor-pointer flex flex-row-reverse gap-2 items-center"
-                          >
-                            <Bookmark
-                              size={16}
-                              className={
-                                isVerseBookmarked(surahId, verse.id)
-                                  ? "fill-primary text-primary"
-                                  : ""
-                              }
-                            />
-                            <span>
-                              {isVerseBookmarked(surahId, verse.id)
-                                ? "إزالة المرجعية"
-                                : "إضافة للمرجعيات"}
-                            </span>
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            onClick={(e) => {
-                              e.preventDefault();
-                              shareVerse(verse.id, verse.text);
-                            }}
-                            className="cursor-pointer flex flex-row-reverse gap-2 items-center"
-                          >
-                            <Share size={16} />
-                            <span>مشاركة</span>
-                          </DropdownMenuItem>
-                        </div>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
+          />
         ))}
 
-        {/* Loading indicator that triggers loading more verses */}
         {hasMore && (
           <div
             ref={loadingRef}

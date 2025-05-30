@@ -1,0 +1,822 @@
+{
+  "info": {
+    "_postman_id": "YOUR_COLLECTION_ID",
+    "name": "Al Quran Cloud API",
+    "description": "A comprehensive collection for testing the Al Quran Cloud API (v1).\n\n**Important Notes:**\n*   All endpoints return a JSON object describing an edition. Use the `identifier` from these edition objects for other endpoints.\n*   If an `edition` identifier is not specified where required, it defaults to `quran-uthmani` (Arabic text).\n*   Audio and text edition responses differ.\n*   Only text editions are searchable.\n\n**CDN Information:**\n*   The CDN is available over HTTP and HTTPS.\n*   For audio editions by Ayah, check available bitrates at: `https://raw.githubusercontent.com/islamic-network/cdn/master/info/cdn.txt`\n*   For audio editions by Surah, check info at: `https://raw.githubusercontent.com/islamic-network/cdn/master/info/cdn_surah_audio.json`\n\n**Tajweed Data:**\n*   The API can return text with embedded Tajweed markers.\n*   Refer to `https://github.com/meezaan/alquran-tools` for parsing.\n*   Example: `[h:9421[ٱ]` becomes `<tajweed class=\"ham_wasl\" data-type=\"hamza-wasl\" data-description=\"Hamzat ul Wasl\" data-tajweed=\":9421\">ٱ</tajweed>`",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Discovering Editions",
+      "description": "Endpoints to find available Quran editions.",
+      "item": [
+        {
+          "name": "1. List All Editions (Basic)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/edition",
+              "host": ["{{baseUrl}}"],
+              "path": ["edition"]
+            },
+            "description": "Lists all available editions. \n\n**Example:** `http://api.alquran.cloud/v1/edition`"
+          },
+          "response": []
+        },
+        {
+          "name": "1. List All Editions (Filtered)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/edition?format=audio&language=fr&type=versebyverse",
+              "host": ["{{baseUrl}}"],
+              "path": ["edition"],
+              "query": [
+                {
+                  "key": "format",
+                  "value": "audio",
+                  "description": "Specify format: 'text' or 'audio'"
+                },
+                {
+                  "key": "language",
+                  "value": "fr",
+                  "description": "A 2 digit language code. Example: 'en', 'fr', etc."
+                },
+                {
+                  "key": "type",
+                  "value": "versebyverse",
+                  "description": "A valid type. Example - 'versebyverse', 'translation' etc."
+                }
+              ]
+            },
+            "description": "Lists all available editions with filters.\n\n**Parameters:**\n*   `format` - Specify a format. 'text' or 'audio'\n*   `language` - A 2 digit language code. Example: 'en', 'fr', etc.\n*   `type` - A valid type. Example - 'versebyverse', 'translation' etc.\n\n**Example:** `http://api.alquran.cloud/v1/edition?format=audio&language=fr&type=versebyverse`"
+          },
+          "response": []
+        },
+        {
+          "name": "2. List All Languages for Editions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/edition/language",
+              "host": ["{{baseUrl}}"],
+              "path": ["edition", "language"]
+            },
+            "description": "Lists all languages in which editions are available.\n\n**Example:** `http://api.alquran.cloud/v1/edition/language` (Note: documentation example `http://api.alquran.cloud/v1/language` might be a shorthand, using `/edition/language` for consistency)"
+          },
+          "response": []
+        },
+        {
+          "name": "3. List Editions by Language",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/edition/language/:language",
+              "host": ["{{baseUrl}}"],
+              "path": ["edition", "language", ":language"],
+              "variable": [
+                {
+                  "key": "language",
+                  "value": "en",
+                  "description": "A 2 digit language code (e.g., en, fr, ar)"
+                }
+              ]
+            },
+            "description": "Lists all editions for a given language.\n\n**Path Parameter:**\n*   `{{language}}`: A 2 digit language code. Example: `en` for English, `fr` for French, `ar` for Arabic.\n\n**Example:** `http://api.alquran.cloud/v1/edition/language/en`"
+          },
+          "response": []
+        },
+        {
+          "name": "4. List All Edition Types",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/edition/type",
+              "host": ["{{baseUrl}}"],
+              "path": ["edition", "type"]
+            },
+            "description": "Lists all types of editions.\n\n**Example:** `http://api.alquran.cloud/v1/edition/type` (Note: documentation example `http://api.alquran.cloud/v1/type` might be a shorthand)"
+          },
+          "response": []
+        },
+        {
+          "name": "5. List Editions by Type",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/edition/type/:type",
+              "host": ["{{baseUrl}}"],
+              "path": ["edition", "type", ":type"],
+              "variable": [
+                {
+                  "key": "type",
+                  "value": "translation",
+                  "description": "A valid type (e.g., 'translation', 'tafsir')"
+                }
+              ]
+            },
+            "description": "Lists all editions for a given type.\n\n**Path Parameter:**\n*   `{{type}}`: Can be 'translation', 'tafsir' or another result returned in #4.\n\n**Example:** `http://api.alquran.cloud/v1/edition/type/translation`"
+          },
+          "response": []
+        },
+        {
+          "name": "6. List All Edition Formats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/edition/format",
+              "host": ["{{baseUrl}}"],
+              "path": ["edition", "format"]
+            },
+            "description": "Lists all formats.\n\n**Example:** `http://api.alquran.cloud/v1/edition/format` (Note: documentation example `http://api.alquran.cloud/v1/format` might be a shorthand)"
+          },
+          "response": []
+        },
+        {
+          "name": "7. List Editions by Format",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/edition/format/:format",
+              "host": ["{{baseUrl}}"],
+              "path": ["edition", "format", ":format"],
+              "variable": [
+                {
+                  "key": "format",
+                  "value": "text",
+                  "description": "A valid format ('audio' or 'text')"
+                }
+              ]
+            },
+            "description": "Lists all editions for a given format.\n\n**Path Parameter:**\n*   `{{format}}`: Can be 'audio' or 'text'.\n\n**Example:** `http://api.alquran.cloud/v1/edition/format/text`\n\n*NOTE: Audio and text edition responses differ. See examples for the response.*"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Accessing Quranic Content",
+      "description": "Endpoints to fetch specific Quranic content.",
+      "item": [
+        {
+          "name": "8. Get Complete Quran (Text Edition)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/quran/:edition",
+              "host": ["{{baseUrl}}"],
+              "path": ["quran", ":edition"],
+              "variable": [
+                {
+                  "key": "edition",
+                  "value": "en.asad",
+                  "description": "An edition identifier (e.g., en.asad, quran-uthmani)"
+                }
+              ]
+            },
+            "description": "Returns a complete Quran edition in the text format.\n\n**Path Parameter:**\n*   `{{edition}}`: An edition identifier. Example: `en.asad` for Muhammad Asad's english translation.\n\n**Example (Text):** `http://api.alquran.cloud/v1/quran/en.asad`"
+          },
+          "response": []
+        },
+        {
+          "name": "8. Get Complete Quran (Audio Edition)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/quran/:edition",
+              "host": ["{{baseUrl}}"],
+              "path": ["quran", ":edition"],
+              "variable": [
+                {
+                  "key": "edition",
+                  "value": "ar.alafasy",
+                  "description": "An audio edition identifier (e.g., ar.alafasy)"
+                }
+              ]
+            },
+            "description": "Returns a complete Quran edition in the audio format.\n\n**Path Parameter:**\n*   `{{edition}}`: An edition identifier. Example: `ar.alafasy` for Mishary Alafasy's recitation.\n\n**Example (Audio):** `http://api.alquran.cloud/v1/quran/ar.alafasy`"
+          },
+          "response": []
+        },
+        {
+          "name": "9. Get Juz",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/juz/:juz/:edition",
+              "host": ["{{baseUrl}}"],
+              "path": ["juz", ":juz", ":edition"],
+              "variable": [
+                {
+                  "key": "juz",
+                  "value": "30",
+                  "description": "Juz number (1-30)"
+                },
+                {
+                  "key": "edition",
+                  "value": "en.asad",
+                  "description": "Edition identifier"
+                }
+              ]
+            },
+            "description": "Returns the requested juz from a particular edition.\n\n**Path Parameters:**\n*   `{{juz}}`: Juz number (1-30).\n*   `{{edition}}`: Edition identifier.\n\n**Optional Query Parameters (add to URL manually or via Params tab):**\n*   `offset` - Offset ayahs in a juz by the given number.\n*   `limit` - This is the number of ayahs that the response will be limited to.\n\n**Examples:**\n*   `http://api.alquran.cloud/v1/juz/30/en.asad`\n*   `http://api.alquran.cloud/v1/juz/1/quran-uthmani?offset=3&limit=10`"
+          },
+          "response": []
+        },
+        {
+          "name": "10. List All Surahs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/surah",
+              "host": ["{{baseUrl}}"],
+              "path": ["surah"]
+            },
+            "description": "Returns the list of Surahs in the Quran.\n\n**Example:** `http://api.alquran.cloud/v1/surah`\n\n*Optional Parameters (not explicitly shown in docs for this endpoint, but generally applicable for lists): `offset`, `limit`*"
+          },
+          "response": []
+        },
+        {
+          "name": "11. Get Surah (Specific Edition)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/surah/:surah_number/:edition",
+              "host": ["{{baseUrl}}"],
+              "path": ["surah", ":surah_number", ":edition"],
+              "query": [
+                {
+                  "key": "offset",
+                  "value": "1",
+                  "description": "Offset ayahs in the surah",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "3",
+                  "description": "Number of ayahs to limit response to",
+                  "disabled": true
+                }
+              ],
+              "variable": [
+                {
+                  "key": "surah_number",
+                  "value": "114",
+                  "description": "Surah number (1-114)"
+                },
+                {
+                  "key": "edition",
+                  "value": "en.asad",
+                  "description": "Edition identifier"
+                }
+              ]
+            },
+            "description": "Returns the requested surah from a particular edition.\n\n**Path Parameters:**\n*   `{{surah_number}}`: Surah number (1-114).\n*   `{{edition}}`: Edition identifier.\n\n**Optional Query Parameters:**\n* `offset`: Offset ayahs in a surah by the given number\n* `limit`: This is the number of ayahs that the response will be limited to.\n\n**Examples:**\n*   `http://api.alquran.cloud/v1/surah/114/en.asad`\n*   `http://api.alquran.cloud/v1/surah/1?offset=1&limit=3` (This implies default edition `quran-uthmani`)"
+          },
+          "response": []
+        },
+        {
+          "name": "11. Get Surah (Default Edition - Arabic)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/surah/:surah_number",
+              "host": ["{{baseUrl}}"],
+              "path": ["surah", ":surah_number"],
+              "variable": [
+                {
+                  "key": "surah_number",
+                  "value": "114",
+                  "description": "Surah number (1-114)"
+                }
+              ]
+            },
+            "description": "Returns the requested surah. If edition is not specified, 'quran-uthmani' is used.\n\n**Path Parameter:**\n*   `{{surah_number}}`: Surah number (1-114).\n\n**Example:** `http://api.alquran.cloud/v1/surah/114`"
+          },
+          "response": []
+        },
+        {
+          "name": "12. Get Surah (Multiple Editions)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/surah/:surah_number/editions/:editions",
+              "host": ["{{baseUrl}}"],
+              "path": ["surah", ":surah_number", "editions", ":editions"],
+              "variable": [
+                {
+                  "key": "surah_number",
+                  "value": "114",
+                  "description": "Surah number (1-114)"
+                },
+                {
+                  "key": "editions",
+                  "value": "quran-uthmani,en.asad,en.pickthall",
+                  "description": "Comma-separated edition identifiers"
+                }
+              ]
+            },
+            "description": "Returns the requested surah from multiple editions.\n\n**Path Parameters:**\n*   `{{surah_number}}`: Surah number (1-114).\n*   `{{editions}}`: Comma-separated list of edition identifiers.\n\n**Example:** `http://api.alquran.cloud/v1/surah/114/editions/quran-uthmani,en.asad,en.pickthall`"
+          },
+          "response": []
+        },
+        {
+          "name": "13. Get Ayah (Specific Edition)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ayah/:reference/:edition",
+              "host": ["{{baseUrl}}"],
+              "path": ["ayah", ":reference", ":edition"],
+              "variable": [
+                {
+                  "key": "reference",
+                  "value": "2:255",
+                  "description": "Ayah reference (e.g., '262' or '2:255')"
+                },
+                {
+                  "key": "edition",
+                  "value": "en.asad",
+                  "description": "Edition identifier"
+                }
+              ]
+            },
+            "description": "Returns an ayah for a given edition.\n\n**Path Parameters:**\n*   `{{reference}}`: Ayah number (e.g., `262`) or surah:ayah (e.g., `2:255`).\n*   `{{edition}}`: Edition identifier.\n\n**Examples:**\n*   `http://api.alquran.cloud/v1/ayah/262/en.asad`\n*   `http://api.alquran.cloud/v1/ayah/2:255/ar.alafasy`"
+          },
+          "response": []
+        },
+        {
+          "name": "13. Get Ayah (Default Edition - Arabic)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ayah/:reference",
+              "host": ["{{baseUrl}}"],
+              "path": ["ayah", ":reference"],
+              "variable": [
+                {
+                  "key": "reference",
+                  "value": "262",
+                  "description": "Ayah reference (e.g., '262' or '2:255')"
+                }
+              ]
+            },
+            "description": "Returns an ayah. If edition is not specified, 'quran-uthmani' is used.\n\n**Path Parameter:**\n*   `{{reference}}`: Ayah number or surah:ayah.\n\n**Example:** `http://api.alquran.cloud/v1/ayah/262`"
+          },
+          "response": []
+        },
+        {
+          "name": "14. Get Ayah (Multiple Editions)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ayah/:reference/editions/:editions",
+              "host": ["{{baseUrl}}"],
+              "path": ["ayah", ":reference", "editions", ":editions"],
+              "variable": [
+                {
+                  "key": "reference",
+                  "value": "2:255",
+                  "description": "Ayah reference (e.g., '262' or '2:255')"
+                },
+                {
+                  "key": "editions",
+                  "value": "quran-uthmani,en.asad,en.pickthall",
+                  "description": "Comma-separated edition identifiers"
+                }
+              ]
+            },
+            "description": "Returns an ayah for multiple editions.\n\n**Path Parameters:**\n*   `{{reference}}`: Ayah reference.\n*   `{{editions}}`: Comma-separated edition identifiers.\n\n**Example:** `http://api.alquran.cloud/v1/ayah/262/editions/quran-uthmani,en.asad,en.pickthall`"
+          },
+          "response": []
+        },
+        {
+          "name": "15. Search Text (Language)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/search/:keyword/:surah_scope/:language",
+              "host": ["{{baseUrl}}"],
+              "path": ["search", ":keyword", ":surah_scope", ":language"],
+              "variable": [
+                {
+                  "key": "keyword",
+                  "value": "Abraham",
+                  "description": "Keyword to search for"
+                },
+                {
+                  "key": "surah_scope",
+                  "value": "all",
+                  "description": "Surah number (1-114) or 'all'"
+                },
+                {
+                  "key": "language",
+                  "value": "en",
+                  "description": "2-digit language code"
+                }
+              ]
+            },
+            "description": "Returns ayahs that match a keyword in a given language.\n*Note: Only text editions are searchable.*\n\n**Path Parameters:**\n*   `{{keyword}}`: Search term.\n*   `{{surah_scope}}`: Surah number (1-114) or 'all'.\n*   `{{language}}`: 2-digit language code (e.g., `en`).\n\n**Example:** `http://api.alquran.cloud/v1/search/Abraham/all/en`"
+          },
+          "response": []
+        },
+        {
+          "name": "15. Search Text (Specific Edition)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/search/:keyword/:surah_scope/:edition",
+              "host": ["{{baseUrl}}"],
+              "path": ["search", ":keyword", ":surah_scope", ":edition"],
+              "variable": [
+                {
+                  "key": "keyword",
+                  "value": "Abraham",
+                  "description": "Keyword to search for"
+                },
+                {
+                  "key": "surah_scope",
+                  "value": "37",
+                  "description": "Surah number (1-114) or 'all'"
+                },
+                {
+                  "key": "edition",
+                  "value": "en.pickthall",
+                  "description": "Edition identifier"
+                }
+              ]
+            },
+            "description": "Returns ayahs that match a keyword in a given edition.\n*Note: Only text editions are searchable.*\n\n**Path Parameters:**\n*   `{{keyword}}`: Search term.\n*   `{{surah_scope}}`: Surah number (1-114) or 'all'.\n*   `{{edition}}`: Edition identifier.\n\n**Examples:**\n*   `http://api.alquran.cloud/v1/search/Abraham/all/en.pickthall`\n*   `http://api.alquran.cloud/v1/search/Abraham/37/en.pickthall`"
+          },
+          "response": []
+        },
+        {
+          "name": "16. Get Manzil",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/manzil/:manzil_number/:edition",
+              "host": ["{{baseUrl}}"],
+              "path": ["manzil", ":manzil_number", ":edition"],
+              "query": [
+                {
+                  "key": "offset",
+                  "value": "3",
+                  "description": "Offset ayahs in the manzil",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of ayahs to limit response to",
+                  "disabled": true
+                }
+              ],
+              "variable": [
+                {
+                  "key": "manzil_number",
+                  "value": "7",
+                  "description": "Manzil number (1-7)"
+                },
+                {
+                  "key": "edition",
+                  "value": "quran-uthmani",
+                  "description": "Edition identifier"
+                }
+              ]
+            },
+            "description": "Returns the requested manzil from a particular edition.\n\n**Path Parameters:**\n*   `{{manzil_number}}`: Manzil number (1-7).\n*   `{{edition}}`: Edition identifier.\n\n**Optional Query Parameters:**\n* `offset`: Offset ayahs\n* `limit`: Limit ayahs\n\n**Examples:**\n*   `http://api.alquran.cloud/v1/manzil/7/en.asad`\n*   `http://api.alquran.cloud/v1/manzil/7/quran-uthmani?offset=3&limit=10`"
+          },
+          "response": []
+        },
+        {
+          "name": "17. Get Ruku",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ruku/:ruku_number/:edition",
+              "host": ["{{baseUrl}}"],
+              "path": ["ruku", ":ruku_number", ":edition"],
+              "query": [
+                {
+                  "key": "offset",
+                  "value": "3",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "3",
+                  "disabled": true
+                }
+              ],
+              "variable": [
+                {
+                  "key": "ruku_number",
+                  "value": "7",
+                  "description": "Ruku number (1-556)"
+                },
+                {
+                  "key": "edition",
+                  "value": "quran-uthmani",
+                  "description": "Edition identifier"
+                }
+              ]
+            },
+            "description": "Returns the requested ruku from a particular edition.\n\n**Path Parameters:**\n*   `{{ruku_number}}`: Ruku number (1-556).\n*   `{{edition}}`: Edition identifier.\n\n**Optional Query Parameters:** `offset`, `limit`\n\n**Examples:**\n*   `http://api.alquran.cloud/v1/ruku/7/en.asad`\n*   `http://api.alquran.cloud/v1/ruku/7/quran-uthmani?offset=3&limit=3`"
+          },
+          "response": []
+        },
+        {
+          "name": "18. Get Page",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/page/:page_number/:edition",
+              "host": ["{{baseUrl}}"],
+              "path": ["page", ":page_number", ":edition"],
+              "query": [
+                {
+                  "key": "offset",
+                  "value": "2",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "2",
+                  "disabled": true
+                }
+              ],
+              "variable": [
+                {
+                  "key": "page_number",
+                  "value": "1",
+                  "description": "Page number (1-604)"
+                },
+                {
+                  "key": "edition",
+                  "value": "quran-uthmani",
+                  "description": "Edition identifier"
+                }
+              ]
+            },
+            "description": "Returns the requested page from a particular edition.\n\n**Path Parameters:**\n*   `{{page_number}}`: Page number (1-604).\n*   `{{edition}}`: Edition identifier.\n\n**Optional Query Parameters:** `offset`, `limit`\n\n**Examples:**\n*   `http://api.alquran.cloud/v1/page/1/en.asad`\n*   `http://api.alquran.cloud/v1/page/1/quran-uthmani?offset=2&limit=2`"
+          },
+          "response": []
+        },
+        {
+          "name": "19. Get Hizb Quarter",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/hizbQuarter/:hizb_number/:edition",
+              "host": ["{{baseUrl}}"],
+              "path": ["hizbQuarter", ":hizb_number", ":edition"],
+              "query": [
+                {
+                  "key": "offset",
+                  "value": "2",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "2",
+                  "disabled": true
+                }
+              ],
+              "variable": [
+                {
+                  "key": "hizb_number",
+                  "value": "1",
+                  "description": "Hizb Quarter number (1-240)"
+                },
+                {
+                  "key": "edition",
+                  "value": "quran-uthmani",
+                  "description": "Edition identifier"
+                }
+              ]
+            },
+            "description": "Returns the requested Hizb Quarter from a particular edition.\n\n**Path Parameters:**\n*   `{{hizb_number}}`: Hizb Quarter number (1-240).\n*   `{{edition}}`: Edition identifier.\n\n**Optional Query Parameters:** `offset`, `limit`\n\n**Examples:**\n*   `http://api.alquran.cloud/v1/hizbQuarter/1/en.asad`\n*   `http://api.alquran.cloud/v1/hizbQuarter/1/quran-uthmani?offset=2&limit=2`"
+          },
+          "response": []
+        },
+        {
+          "name": "20. Get Sajda Ayahs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/sajda/:edition",
+              "host": ["{{baseUrl}}"],
+              "path": ["sajda", ":edition"],
+              "variable": [
+                {
+                  "key": "edition",
+                  "value": "quran-uthmani",
+                  "description": "Edition identifier"
+                }
+              ]
+            },
+            "description": "Returns all the sajda ayahs from a particular edition.\n\n**Path Parameter:**\n*   `{{edition}}`: Edition identifier.\n\n**Examples:**\n*   `http://api.alquran.cloud/v1/sajda/en.asad`\n*   `http://api.alquran.cloud/v1/sajda/quran-uthmani`"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Metadata",
+      "description": "API metadata.",
+      "item": [
+        {
+          "name": "21. Get API Meta Data",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/meta",
+              "host": ["{{baseUrl}}"],
+              "path": ["meta"]
+            },
+            "description": "Returns all the meta data about the Qur'an available in this API.\n\n**Example:** `http://api.alquran.cloud/v1/meta`"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "CDN - Content Delivery Network",
+      "description": "Direct links to media files on the CDN. These are not API calls but direct file access.\nRemember to set the `{{cdnUrl}}` environment variable to `https://cdn.islamic.network`",
+      "item": [
+        {
+          "name": "CDN: Get Audio by Ayah",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{cdnUrl}}/quran/audio/:bitrate/:edition/:ayah_number.mp3",
+              "host": ["{{cdnUrl}}"],
+              "path": [
+                "quran",
+                "audio",
+                ":bitrate",
+                ":edition",
+                ":ayah_number.mp3"
+              ],
+              "variable": [
+                {
+                  "key": "bitrate",
+                  "value": "128",
+                  "description": "Audio quality (e.g., 192, 128, 64). Check availability."
+                },
+                {
+                  "key": "edition",
+                  "value": "ar.alafasy",
+                  "description": "Audio edition identifier."
+                },
+                {
+                  "key": "ayah_number",
+                  "value": "262",
+                  "description": "Absolute ayah number (1-6236)."
+                }
+              ]
+            },
+            "description": "Access individual ayah audio files directly from the CDN.\n\n**Path Parameters:**\n*   `{bitrate}`: Quality of audio (e.g., 192, 128, 64, 48, 40, 32). See `https://raw.githubusercontent.com/islamic-network/cdn/master/info/cdn.txt`.\n*   `{edition}`: An audio edition (e.g., `ar.alafasy`). List: `http://api.alquran.cloud/edition/format/audio`.\n*   `{ayah_number}`: Ayah number (1-6236).\n\n**Examples:**\n*   `https://cdn.islamic.network/quran/audio/128/ar.alafasy/262.mp3`\n*   `https://cdn.islamic.network/quran/audio/64/ar.alafasy/262.mp3`"
+          },
+          "response": []
+        },
+        {
+          "name": "CDN: Get Audio by Surah",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{cdnUrl}}/quran/audio-surah/:bitrate/:edition/:surah_number.mp3",
+              "host": ["{{cdnUrl}}"],
+              "path": [
+                "quran",
+                "audio-surah",
+                ":bitrate",
+                ":edition",
+                ":surah_number.mp3"
+              ],
+              "variable": [
+                {
+                  "key": "bitrate",
+                  "value": "128",
+                  "description": "Audio quality. Check availability."
+                },
+                {
+                  "key": "edition",
+                  "value": "ar.alafasy",
+                  "description": "Audio edition identifier."
+                },
+                {
+                  "key": "surah_number",
+                  "value": "1",
+                  "description": "Surah number (1-114)."
+                }
+              ]
+            },
+            "description": "Access full Surah audio files directly from the CDN.\n\n**Path Parameters:**\n*   `{bitrate}`: Audio quality. See `https://raw.githubusercontent.com/islamic-network/cdn/master/info/cdn_surah_audio.json`.\n*   `{edition}`: An audio edition. See same JSON link above.\n*   `{surah_number}`: Surah number (1-114).\n\n**Examples:**\n*   `https://cdn.islamic.network/quran/audio-surah/128/ar.alafasy/1.mp3`\n*   `https://cdn.islamic.network/quran/audio-surah/128/ar.alafasy/114.mp3`"
+          },
+          "response": []
+        },
+        {
+          "name": "CDN: Get Ayah Image (Normal Resolution)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{cdnUrl}}/quran/images/:surah_number_:ayah_in_surah.png",
+              "host": ["{{cdnUrl}}"],
+              "path": ["quran", "images", ":surah_number_:ayah_in_surah.png"],
+              "variable": [
+                {
+                  "key": "surah_number",
+                  "value": "2",
+                  "description": "Surah number (1-114)."
+                },
+                {
+                  "key": "ayah_in_surah",
+                  "value": "255",
+                  "description": "Ayah number relative to the surah."
+                }
+              ]
+            },
+            "description": "Access images of Quranic ayahs (normal resolution).\n\n**Path Parameters (combined into filename):**\n*   `{surah_number}`: Surah number (1-114).\n*   `{ayah_in_surah}`: Ayah number relative to the Surah.\n\n**Example:** `http://cdn.islamic.network/quran/images/2_255.png`"
+          },
+          "response": []
+        },
+        {
+          "name": "CDN: Get Ayah Image (High Resolution)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{cdnUrl}}/quran/images/high-resolution/:surah_number_:ayah_in_surah.png",
+              "host": ["{{cdnUrl}}"],
+              "path": [
+                "quran",
+                "images",
+                "high-resolution",
+                ":surah_number_:ayah_in_surah.png"
+              ],
+              "variable": [
+                {
+                  "key": "surah_number",
+                  "value": "100",
+                  "description": "Surah number (1-114)."
+                },
+                {
+                  "key": "ayah_in_surah",
+                  "value": "1",
+                  "description": "Ayah number relative to the surah."
+                }
+              ]
+            },
+            "description": "Access images of Quranic ayahs (high resolution).\n\n**Path Parameters (combined into filename):**\n*   `{surah_number}`: Surah number (1-114).\n*   `{ayah_in_surah}`: Ayah number relative to the Surah.\n\n**Example:** `http://cdn.islamic.network/quran/images/high-resolution/100_1.png`"
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://api.alquran.cloud/v1",
+      "type": "string",
+      "description": "Base URL for the Al Quran Cloud API v1"
+    },
+    {
+      "key": "cdnUrl",
+      "value": "https://cdn.islamic.network",
+      "type": "string",
+      "description": "Base URL for the Al Quran CDN"
+    }
+  ]
+}

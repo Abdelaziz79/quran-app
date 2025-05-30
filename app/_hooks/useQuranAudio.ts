@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
-import { useState, useEffect, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 // Base API URL
 const API_BASE_URL = "https://www.mp3quran.net/api/v3";
@@ -17,6 +17,17 @@ export type Reciter = {
     moshaf_type: number;
     surah_list: string;
   }>;
+};
+
+export type AudioEdition = {
+  identifier: string;
+  language: string;
+  name: string;
+  englishName: string;
+  format: string;
+  type: string;
+  direction: string | null;
+  availableBitrates: number[];
 };
 
 export type RecitersResponse = {
@@ -329,6 +340,22 @@ export function useAudioPlayer() {
     [audioElement]
   );
 
+  // Add a method to register an ended callback
+  const onEnded = useCallback(
+    (callback: () => void) => {
+      if (audioElement) {
+        // First remove any existing ended event listeners
+        const cloneCallback = callback; // Clone to avoid closure issues
+        audioElement.addEventListener("ended", cloneCallback);
+        return () => {
+          audioElement.removeEventListener("ended", cloneCallback);
+        };
+      }
+      return () => {}; // Return empty function if no audio element
+    },
+    [audioElement]
+  );
+
   return {
     play,
     pause,
@@ -340,5 +367,7 @@ export function useAudioPlayer() {
     currentTime,
     duration,
     volume,
+    audioElement,
+    onEnded,
   };
 }

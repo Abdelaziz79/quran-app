@@ -190,10 +190,25 @@ export function usePaginatedSurahDetail(
       return false;
     }, [verses.length, visibleVerses.length]);
 
+    // Function to ensure a specific verse is loaded
+    const ensureVerseIsLoaded = useCallback(
+      (verseNumber: number) => {
+        // Add buffer to load additional ayahs (e.g., 2 more)
+        const verseToLoad = verseNumber + 2;
+        const requiredPages = Math.ceil(verseToLoad / pageSize);
+        if (requiredPages > loadedPages) {
+          setLoadedPages(requiredPages);
+          return true;
+        }
+        return false;
+      },
+      [loadedPages, pageSize]
+    );
+
     // Check if there are more verses to load
     const hasMore = visibleVerses.length < verses.length;
 
-    return { visibleVerses, loadMore, hasMore };
+    return { visibleVerses, loadMore, hasMore, ensureVerseIsLoaded };
   };
 
   return {
