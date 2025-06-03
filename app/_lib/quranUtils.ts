@@ -1,4 +1,3 @@
-// app/_lib/quranUtils.ts
 import { AYAH_COUNTS_PER_SURAH_CONST } from "@/app/_constants/ayahCounts";
 
 export function getAbsoluteAyahNumber(
@@ -48,3 +47,13 @@ export const toArabicDigits = (num: number): string => {
     .map((digit) => arabicDigits[parseInt(digit)])
     .join("");
 };
+
+// Helper to format time in HH:MM:SS
+export function formatTime(seconds: number): string {
+  const hrs = Math.floor(seconds / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${hrs.toString().padStart(2, "0")}:${mins
+    .toString()
+    .padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+}

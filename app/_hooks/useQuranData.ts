@@ -1,6 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { AYAH_COUNTS_PER_SURAH_CONST } from "@/app/_constants/ayahCounts";
+import {
+  getDailyAyahSelection,
+  saveDailyAyahSelection,
+} from "@/app/_lib/localStorageUtils";
 
 export type Surah = {
   index: string;
@@ -241,5 +246,117 @@ export function useSurahTranslation(surahId: string) {
     error: isError ? (error as Error).message || "An error occurred" : null,
     isLoading,
     fetchTranslation: refetch,
+  };
+}
+
+// Hook to fetch a random ayah from the Quran
+export function useRandomAyah() {
+  // Get a random surah (1-114)
+  const getRandomSurah = () => {
+    return Math.floor(Math.random() * 114) + 1;
+  };
+
+  // Get a random ayah from a specific surah
+  const getRandomAyahFromSurah = (surahIndex: number) => {
+    const ayahCount = AYAH_COUNTS_PER_SURAH_CONST[surahIndex - 1];
+    return Math.floor(Math.random() * ayahCount) + 1;
+  };
+
+  const [randomSelection, setRandomSelection] = useState<{
+    surahId: string;
+    ayahId: number;
+  }>(() => {
+    // First try to get today's saved ayah
+    const savedAyah = getDailyAyahSelection();
+    if (savedAyah) {
+      return {
+        surahId: savedAyah.surahId,
+        ayahId: savedAyah.ayahId,
+      };
+    }
+
+    // If no saved ayah for today, generate a new random one
+    const surahId = getRandomSurah();
+    const ayahId = getRandomAyahFromSurah(surahId);
+    const formattedSurahId = surahId.toString().padStart(3, "0");
+
+    // Save the new selection
+    saveDailyAyahSelection(formattedSurahId, ayahId);
+
+    return { surahId: formattedSurahId, ayahId };
+  });
+
+  // Client-side effect to ensure localStorage is only accessed after mount
+  useEffect(() => {
+    const savedAyah = getDailyAyahSelection();
+    if (!savedAyah) {
+      // If there's no saved ayah for today, save our current selection
+      saveDailyAyahSelection(randomSelection.surahId, randomSelection.ayahId);
+    }
+  }, [randomSelection.surahId, randomSelection.ayahId]);
+
+  // Get a new random ayah
+  const getNewRandomAyah = useCallback(() => {
+    const surahId = getRandomSurah();
+    const ayahId = getRandomAyahFromSurah(surahId);
+    const formattedSurahId = surahId.toString().padStart(3, "0");
+
+    // Save the new selection
+    saveDailyAyahSelection(formattedSurahId, ayahId);
+
+    setRandomSelection({
+      surahId: formattedSurahId,
+      ayahId,
+    });
+  }, []);
+
+  // Fetch the surah details
+  const {
+    data: surahData,
+    isLoading: surahLoading,
+    error: surahError,
+  } = useQuery({
+    queryKey: ["surah", randomSelection.surahId],
+    queryFn: () => fetchSurahDetail(randomSelection.surahId),
+  });
+
+  // Fetch the translation
+  const {
+    data: translationData,
+    isLoading: translationLoading,
+    error: translationError,
+  } = useQuery({
+    queryKey: ["translation", randomSelection.surahId],
+    queryFn: () => fetchTranslation(randomSelection.surahId),
+  });
+
+  // Get the specific verse text and metadata
+  const ayahData = useMemo(() => {
+    if (!surahData || !translationData) return null;
+
+    const ayahKey = `verse_${randomSelection.ayahId}`;
+    const ayahText = surahData.surah.verse[ayahKey];
+    const translationText = translationData[randomSelection.ayahId];
+
+    return {
+      surahId: randomSelection.surahId,
+      surahName: surahData.metadata?.titleAr || "",
+      surahNameEn: surahData.metadata?.title || "",
+      ayahId: randomSelection.ayahId,
+      ayahText,
+      translationText,
+      isLoading: false,
+      error: null,
+    };
+  }, [surahData, translationData, randomSelection]);
+
+  const isLoading = surahLoading || translationLoading;
+  const error = surahError || translationError;
+
+  return {
+    ayahData,
+    isLoading,
+    error: error ? (error as Error).message : null,
+    refresh: getNewRandomAyah,
   };
 }

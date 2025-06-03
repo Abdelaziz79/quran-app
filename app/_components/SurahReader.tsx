@@ -14,16 +14,31 @@ import {
 } from "@/app/_hooks/useQuranData";
 import { useTheme } from "@/app/_hooks/useTheme";
 import { toArabicDigits } from "@/app/_lib/quranUtils";
-import { Bookmark, ChevronRight, Maximize2, Volume2 } from "lucide-react";
+import {
+  Bookmark,
+  ChevronRight,
+  Maximize2,
+  Volume2,
+  ArrowLeft,
+  ArrowRight,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import {
+  loadLastReadPosition,
+  loadShowTranslation,
+  saveLastReadPosition,
+  saveShowTranslation,
+} from "@/app/_lib/localStorageUtils";
+import { AYAH_COUNTS_PER_SURAH_CONST } from "@/app/_constants/ayahCounts";
 
 export function SurahReader({ surahId }: { surahId: string }) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const ayahParam = searchParams.get("ayah");
 
+  // Use ayah from URL if available
   const initialAyah = ayahParam ? parseInt(ayahParam) : null;
 
   const { surahs } = useSurahList();
@@ -163,11 +178,16 @@ export function SurahReader({ surahId }: { surahId: string }) {
       });
       setActiveVerse(currentVerse);
 
+      // Save the current showTranslation state in localStorage to preserve it during navigation
+      import("@/app/_lib/localStorageUtils").then((utils) => {
+        utils.saveShowTranslation(showTranslation);
+      });
+
       router.replace(`/surah/${surahId}?ayah=${currentVerse}`, {
         scroll: false,
       });
     }
-  }, [currentVerse, isVerseByVerseMode, router, surahId]);
+  }, [currentVerse, isVerseByVerseMode, router, surahId, showTranslation]);
 
   // Reset scroll state on surah change
   useEffect(() => {
@@ -216,6 +236,31 @@ export function SurahReader({ surahId }: { surahId: string }) {
     setVerseAudioUrls,
   ]);
 
+  // Load user preferences on initial render
+  useEffect(() => {
+    // Load saved translation preference
+    setShowTranslation(loadShowTranslation());
+
+    // If no ayah specified, try to load last reading position
+    if (!ayahParam) {
+      const { surahId: lastSurahId, verseId: lastVerseId } =
+        loadLastReadPosition();
+      if (lastSurahId === surahId && lastVerseId) {
+        // Update URL without reloading
+        router.replace(`/surah/${surahId}?ayah=${lastVerseId}`, {
+          scroll: false,
+        });
+      }
+    }
+  }, [surahId, ayahParam, router]);
+
+  // Save reading position whenever active verse changes
+  useEffect(() => {
+    if (activeVerse !== null) {
+      saveLastReadPosition(surahId, activeVerse);
+    }
+  }, [activeVerse, surahId]);
+
   const handleToggleTranslation = () => setShowTranslation(!showTranslation);
   const handleReadingMode = () => setReadingMode(!readingMode);
   const handleToggleAudioPlayer = () => setShowAudioPlayer(!showAudioPlayer);
@@ -226,6 +271,10 @@ export function SurahReader({ surahId }: { surahId: string }) {
       router.replace(`/surah/${surahId}`, { scroll: false });
     } else {
       setActiveVerse(verseId);
+      saveLastReadPosition(surahId, verseId);
+
+      // Save translation state to persist it
+      saveShowTranslation(showTranslation);
 
       router.replace(`/surah/${surahId}?ayah=${verseId}`, { scroll: false });
       if (
@@ -317,6 +366,26 @@ export function SurahReader({ surahId }: { surahId: string }) {
         ? "reading-mode bg-zinc-900 text-amber-50"
         : "reading-mode bg-amber-50 text-zinc-900"
       : "";
+
+  const handleNavigateToSurah = (direction: "next" | "prev") => {
+    const currentSurahId = parseInt(surahId);
+    const totalSurahs = AYAH_COUNTS_PER_SURAH_CONST.length; // 114 surahs in Quran
+
+    // Reset states before navigation
+    setActiveVerse(null);
+    setCurrentVerse(null);
+
+    let targetSurahId;
+    if (direction === "next") {
+      targetSurahId = currentSurahId < totalSurahs ? currentSurahId + 1 : null;
+    } else {
+      targetSurahId = currentSurahId > 1 ? currentSurahId - 1 : null;
+    }
+
+    if (targetSurahId) {
+      router.push(`/surah/${targetSurahId.toString().padStart(3, "0")}`);
+    }
+  };
 
   if (isLoading) return <Loading />;
   if (error) return <ErrorComp error={error} />;
@@ -425,6 +494,34 @@ export function SurahReader({ surahId }: { surahId: string }) {
             className="flex justify-center p-4 items-center"
           >
             <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-primary"></div>
+          </div>
+        )}
+
+        {!hasMore && (
+          <div className="flex justify-between items-center mt-8 pt-4 border-t">
+            <button
+              onClick={() => handleNavigateToSurah("prev")}
+              className={`px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors flex items-center gap-2 ${
+                parseInt(surahId) <= 1 ? "opacity-50 cursor-not-allowed" : ""
+              }`}
+              disabled={parseInt(surahId) <= 1}
+            >
+              <ArrowRight size={16} />
+              <span>السورة السابقة</span>
+            </button>
+
+            <button
+              onClick={() => handleNavigateToSurah("next")}
+              className={`px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors flex items-center gap-2 ${
+                parseInt(surahId) >= AYAH_COUNTS_PER_SURAH_CONST.length
+                  ? "opacity-50 cursor-not-allowed"
+                  : ""
+              }`}
+              disabled={parseInt(surahId) >= AYAH_COUNTS_PER_SURAH_CONST.length}
+            >
+              <span>السورة التالية</span>
+              <ArrowLeft size={16} />
+            </button>
           </div>
         )}
       </div>

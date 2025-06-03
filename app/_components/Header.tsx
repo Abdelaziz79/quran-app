@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Settings, BookOpen } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
 
 export function Header() {
@@ -10,7 +11,21 @@ export function Header() {
         <Link href="/" className="flex items-center space-x-2">
           <span className="text-xl font-bold text-primary">القرآن الكريم</span>
         </Link>
-        <nav className="flex items-center">
+        <nav className="flex items-center gap-4">
+          <Link
+            href="/bookmarks"
+            className="flex items-center text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <BookOpen className="h-5 w-5" />
+            <span className="mr-2 hidden sm:inline">المرجعيات</span>
+          </Link>
+          <Link
+            href="/settings"
+            className="flex items-center text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Settings className="h-5 w-5" />
+            <span className="mr-2 hidden sm:inline">الإعدادات</span>
+          </Link>
           <ThemeToggle />
         </nav>
       </div>

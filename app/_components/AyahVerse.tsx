@@ -1,6 +1,6 @@
-// app/_components/AyahVerse.tsx
 "use client";
 
+import { useQuranSettings } from "@/app/_hooks/QuranSettingsProvider";
 import { toArabicDigits } from "@/app/_lib/quranUtils";
 import {
   DropdownMenu,
@@ -36,6 +36,7 @@ interface AyahVerseProps {
   onRecite: (verseId: number) => void;
   onDropdownToggle: (isOpen: boolean) => void;
   setVerseRef: (el: HTMLDivElement | null) => void;
+  showOptions?: boolean;
 }
 
 export function AyahVerse({
@@ -56,7 +57,11 @@ export function AyahVerse({
   onRecite,
   onDropdownToggle,
   setVerseRef,
+  showOptions,
 }: AyahVerseProps) {
+  // Use Quran font settings
+  const { fontClass, fontSizeClass, lineHeightClass } = useQuranSettings();
+
   if (verse.id === 0 && !verse.text) {
     // Handle potential bismillah placeholder if not needed
     return null;
@@ -85,32 +90,33 @@ export function AyahVerse({
         } cursor-pointer relative`}
       >
         <div className="flex items-start">
-          {verse.id !== 0 && ( // Ensure verse number is not 0 (for Bismillah which might not have an explicit number in some data)
-            <span
-              className={`flex items-center justify-center w-8 h-8 rounded-full ${
-                readingMode
-                  ? theme === "dark"
-                    ? "bg-zinc-800 text-amber-400"
-                    : "bg-amber-100 text-amber-800"
-                  : "bg-primary/10 text-primary"
-              } text-sm font-medium ml-3 mt-1 relative`}
-            >
-              {toArabicDigits(verse.id)}
-              {isBookmarked && (
-                <Bookmark
-                  size={12}
-                  className="absolute -top-1 -right-1 fill-primary text-primary"
-                />
-              )}
-            </span>
-          )}
           <div className="flex-1">
             <p
               className={`${
-                readingMode ? "text-2xl" : "text-xl"
-              } leading-relaxed font-quran`}
+                readingMode ? fontSizeClass : fontSizeClass
+              } ${lineHeightClass} ${fontClass}`}
             >
               {verse.text}
+
+              {verse.id !== 0 && (
+                <span
+                  className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${
+                    readingMode
+                      ? theme === "dark"
+                        ? "bg-zinc-800 text-amber-400"
+                        : "bg-amber-100 text-amber-800"
+                      : "bg-primary/10 text-primary"
+                  } text-xl font-medium mx-2 relative align-middle `}
+                >
+                  {toArabicDigits(verse.id)}
+                  {isBookmarked && (
+                    <Bookmark
+                      size={12}
+                      className="absolute -top-1 -right-1 fill-primary text-primary"
+                    />
+                  )}
+                </span>
+              )}
             </p>
 
             {showTranslation && translationText && (
@@ -126,7 +132,7 @@ export function AyahVerse({
             )}
           </div>
 
-          {!readingMode && (
+          {!readingMode && showOptions !== false && (
             <div className="relative" dir="ltr">
               {" "}
               {/* Keep LTR for dropdown alignment */}

@@ -1,7 +1,14 @@
 "use client";
 
+import RepeatOptions from "@/app/_components/RepeatOptions";
+import { AYAH_COUNTS_PER_SURAH_CONST } from "@/app/_constants/ayahCounts";
+import {
+  getAudioEditionVerseByVerse,
+  getSurahAudioVerseByVerse,
+} from "@/app/_hooks/AlQuranApi";
 import { useQuranAudioContext } from "@/app/_hooks/QuranAudioProvider";
 import { useArabicRecitersForSurah } from "@/app/_hooks/useQuranAudio";
+import { formatTime, toArabicDigits } from "@/app/_lib/quranUtils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -36,11 +43,7 @@ import {
   X,
 } from "lucide-react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
-import {
-  getAudioEditionVerseByVerse,
-  getSurahAudioVerseByVerse,
-} from "../_hooks/AlQuranApi";
+import { useEffect, useRef, useState } from "react";
 
 // Type for component props
 type AudioPlayerProps = {
@@ -67,7 +70,14 @@ export default function AudioPlayer({ onVisibilityChange }: AudioPlayerProps) {
     setVerseAudioUrls,
     repeatCount,
     setRepeatCount,
+    repeatStartVerse,
+    setRepeatStartVerse,
+    repeatEndVerse,
+    setRepeatEndVerse,
+    isRepeatRange,
+    setIsRepeatRange,
     isInitialPreferencesLoading,
+    autoPlayNext,
   } = useQuranAudioContext();
 
   // Add internal showAudioPlayer state
@@ -83,7 +93,19 @@ export default function AudioPlayer({ onVisibilityChange }: AudioPlayerProps) {
   const [volume, setVolume] = useState<number>(100);
   const [currentRepeat, setCurrentRepeat] = useState(0);
 
-  // Close player and reset states
+  // Track if we've completed a repeat cycle to prevent re-repeating
+  const repeatCycleCompleted = useRef(false);
+
+  // Track the last played verse for resuming after pause
+  const lastPlayedVerse = useRef<number | null>(null);
+
+  // Flag to prevent initial verse playback when setting range
+  const forceRangeStart = useRef(false);
+
+  // Get the total number of verses in this surah
+  const totalVerses = AYAH_COUNTS_PER_SURAH_CONST[surahId - 1] || 0;
+
+  // Handle close player
   const handleClosePlayer = () => {
     // Stop audio playback
     audioPlayer.stop();
@@ -91,6 +113,9 @@ export default function AudioPlayer({ onVisibilityChange }: AudioPlayerProps) {
     // Reset states
     setCurrentVerse(null);
     setCurrentRepeat(0);
+    repeatCycleCompleted.current = false;
+    lastPlayedVerse.current = null;
+    forceRangeStart.current = false;
 
     // Reset URL parameter without the ayah parameter
     if (searchParams.has("ayah")) {
@@ -137,6 +162,23 @@ export default function AudioPlayer({ onVisibilityChange }: AudioPlayerProps) {
     ) {
       setSelectedAudioEdition(verseByVerseEditions[0]);
     }
+
+    // Initialize start/end verse with defaults if they're null
+    if (
+      isVerseByVerseMode &&
+      repeatStartVerse === null &&
+      repeatEndVerse === null
+    ) {
+      if (currentVerse) {
+        setRepeatStartVerse(currentVerse);
+        const endVerse = Math.min(currentVerse + 2, totalVerses);
+        setRepeatEndVerse(endVerse);
+      } else {
+        setRepeatStartVerse(1);
+        const endVerse = Math.min(3, totalVerses);
+        setRepeatEndVerse(endVerse);
+      }
+    }
   }, [
     availableReciters,
     selectedReciter,
@@ -146,6 +188,12 @@ export default function AudioPlayer({ onVisibilityChange }: AudioPlayerProps) {
     selectedAudioEdition,
     setSelectedAudioEdition,
     isInitialPreferencesLoading,
+    repeatStartVerse,
+    repeatEndVerse,
+    setRepeatStartVerse,
+    setRepeatEndVerse,
+    currentVerse,
+    totalVerses,
   ]);
 
   // Load verse audio URLs when edition changes
@@ -156,14 +204,37 @@ export default function AudioPlayer({ onVisibilityChange }: AudioPlayerProps) {
     }
   }, [isVerseByVerseMode, selectedAudioEdition, surahId, setVerseAudioUrls]);
 
+  // Store the current verse when it changes
+  useEffect(() => {
+    if (currentVerse !== null) {
+      lastPlayedVerse.current = currentVerse;
+    }
+  }, [currentVerse]);
+
+  // Reset repeat cycle completed flag when changing repeat settings
+  useEffect(() => {
+    repeatCycleCompleted.current = false;
+  }, [isRepeatRange, repeatStartVerse, repeatEndVerse, repeatCount]);
+
+  // Always force range start when repeat range is active
+  useEffect(() => {
+    if (isRepeatRange) {
+      forceRangeStart.current = true;
+    }
+  }, [isRepeatRange]);
+
   // Handle audio ended event to play next verse or repeat current verse
   useEffect(() => {
     if (!isVerseByVerseMode) return;
 
     const handleAudioEnded = () => {
       if (currentVerse !== null) {
-        // Handle repeating the current verse
-        if (repeatCount > 1 && currentRepeat < repeatCount - 1) {
+        // Handle repeating the current verse (non-range mode)
+        if (
+          !isRepeatRange &&
+          repeatCount > 1 &&
+          currentRepeat < repeatCount - 1
+        ) {
           // Increment repeat counter and play the same verse again
           setCurrentRepeat(currentRepeat + 1);
           setTimeout(() => {
@@ -172,15 +243,122 @@ export default function AudioPlayer({ onVisibilityChange }: AudioPlayerProps) {
           return;
         }
 
+        // Handle range repeat mode
+        if (
+          isRepeatRange &&
+          repeatStartVerse !== null &&
+          repeatEndVerse !== null &&
+          !repeatCycleCompleted.current
+        ) {
+          // Check if this is the first play of the range and we need to jump to the start verse
+          if (forceRangeStart.current && currentVerse < repeatStartVerse) {
+            forceRangeStart.current = false;
+            setCurrentVerse(repeatStartVerse);
+
+            // Save translation state
+            import("@/app/_lib/localStorageUtils").then((utils) => {
+              const currentShowTranslation = utils.loadShowTranslation();
+              utils.saveShowTranslation(currentShowTranslation);
+            });
+
+            // Update URL to track current verse
+            router.replace(
+              `/surah/${surahId
+                .toString()
+                .padStart(3, "0")}?ayah=${repeatStartVerse}`,
+              { scroll: false }
+            );
+
+            // Play the start verse
+            setTimeout(() => {
+              audioPlayer.play(verseAudioUrls[repeatStartVerse - 1]);
+            }, 500);
+            return;
+          }
+
+          // If we're at the end of the range, go back to start verse unless we've
+          // completed all the repeats
+          if (currentVerse >= repeatEndVerse) {
+            // Check if we need to do another repeat of the range
+            if (repeatCount > 1 && currentRepeat < repeatCount - 1) {
+              setCurrentRepeat(currentRepeat + 1);
+              setCurrentVerse(repeatStartVerse);
+
+              // Save translation state
+              import("@/app/_lib/localStorageUtils").then((utils) => {
+                const currentShowTranslation = utils.loadShowTranslation();
+                utils.saveShowTranslation(currentShowTranslation);
+              });
+
+              // Update URL to track current verse
+              router.replace(
+                `/surah/${surahId
+                  .toString()
+                  .padStart(3, "0")}?ayah=${repeatStartVerse}`,
+                { scroll: false }
+              );
+
+              // Play the start verse
+              setTimeout(() => {
+                audioPlayer.play(verseAudioUrls[repeatStartVerse - 1]);
+              }, 800);
+              return;
+            } else {
+              // We've completed all repeats, mark it as completed and stop playback
+              repeatCycleCompleted.current = true;
+              setCurrentRepeat(0);
+
+              // Stop playback instead of continuing to next verse
+              return;
+            }
+          }
+
+          // We're within the range, so proceed to next verse
+          const nextVerse = currentVerse + 1;
+          if (nextVerse <= verseAudioUrls.length) {
+            setCurrentVerse(nextVerse);
+
+            // Save translation state
+            import("@/app/_lib/localStorageUtils").then((utils) => {
+              const currentShowTranslation = utils.loadShowTranslation();
+              utils.saveShowTranslation(currentShowTranslation);
+            });
+
+            // Update URL
+            router.replace(
+              `/surah/${surahId.toString().padStart(3, "0")}?ayah=${nextVerse}`,
+              { scroll: false }
+            );
+            // Play next verse
+            setTimeout(() => {
+              audioPlayer.play(verseAudioUrls[nextVerse - 1]);
+            }, 800);
+            return;
+          }
+        }
+
+        // Standard verse-by-verse mode (no range, or fallback)
         // Reset repeat counter when moving to next verse
         setCurrentRepeat(0);
+
+        // Check if autoPlayNext is enabled
+        if (!autoPlayNext) {
+          // Auto-play is disabled, don't proceed to next verse
+          return;
+        }
 
         // Move to next verse
         const nextVerse = currentVerse + 1;
         if (nextVerse <= verseAudioUrls.length) {
           // Update current verse
-
           setCurrentVerse(nextVerse);
+
+          // Save translation state
+          import("@/app/_lib/localStorageUtils").then((utils) => {
+            const currentShowTranslation = utils.loadShowTranslation();
+            utils.saveShowTranslation(currentShowTranslation);
+          });
+
           // Update URL to track current verse
           router.replace(
             `/surah/${surahId.toString().padStart(3, "0")}?ayah=${nextVerse}`,
@@ -209,16 +387,43 @@ export default function AudioPlayer({ onVisibilityChange }: AudioPlayerProps) {
     router,
     surahId,
     setCurrentVerse,
+    isRepeatRange,
+    repeatStartVerse,
+    repeatEndVerse,
+    autoPlayNext,
   ]);
 
   // Play surah audio
   const handlePlaySurah = () => {
     if (isVerseByVerseMode) {
       if (verseAudioUrls.length > 0) {
-        const verseToPlay = currentVerse || 1;
+        let verseToPlay = currentVerse || 1;
+
+        // If was paused and resuming, continue from the last played verse
+        if (lastPlayedVerse.current && !audioPlayer.isPlaying) {
+          verseToPlay = lastPlayedVerse.current;
+        }
+        // Otherwise, if we're in range repeat mode and have a start verse, use that
+        else if (
+          isRepeatRange &&
+          repeatStartVerse !== null &&
+          !repeatCycleCompleted.current
+        ) {
+          verseToPlay = repeatStartVerse;
+          // Make sure we're actually starting from the start verse
+          forceRangeStart.current = true;
+        }
 
         setCurrentVerse(verseToPlay);
-        setCurrentRepeat(0); // Reset repeat counter
+        setCurrentRepeat(0); // Reset repeat counter when starting playback
+        repeatCycleCompleted.current = false; // Reset cycle completed state
+
+        // Save translation state to maintain it
+        import("@/app/_lib/localStorageUtils").then((utils) => {
+          const currentShowTranslation = utils.loadShowTranslation();
+          utils.saveShowTranslation(currentShowTranslation);
+        });
+
         // Update URL to track current verse
         router.replace(
           `/surah/${surahId.toString().padStart(3, "0")}?ayah=${verseToPlay}`,
@@ -257,6 +462,12 @@ export default function AudioPlayer({ onVisibilityChange }: AudioPlayerProps) {
     // Reset audio player
     audioPlayer.stop();
 
+    // Reset repeat state
+    repeatCycleCompleted.current = false;
+    setCurrentRepeat(0);
+    lastPlayedVerse.current = null;
+    forceRangeStart.current = false;
+
     // Set the mode
     setIsVerseByVerseMode(newMode);
     // The useEffect hooks that depend on `isVerseByVerseMode`,
@@ -265,15 +476,43 @@ export default function AudioPlayer({ onVisibilityChange }: AudioPlayerProps) {
     // from localStorage for the new mode) and loading verse URLs if applicable.
   };
 
-  // Handle playing specific verse
+  // Update the playSpecificVerse function to preserve translation state
   const playSpecificVerse = (verseNumber: number) => {
     if (
       isVerseByVerseMode &&
       verseAudioUrls.length >= verseNumber &&
       verseNumber > 0
     ) {
+      // Stop any ongoing playback
+      audioPlayer.stop();
+
       setCurrentVerse(verseNumber);
-      setCurrentRepeat(0); // Reset repeat counter
+      lastPlayedVerse.current = verseNumber;
+
+      // Reset repeat counter and cycle status when jumping to a specific verse
+      setCurrentRepeat(0);
+
+      // If the verse is outside the repeat range, disable range repeat for now
+      if (
+        isRepeatRange &&
+        repeatStartVerse !== null &&
+        repeatEndVerse !== null
+      ) {
+        if (verseNumber < repeatStartVerse || verseNumber > repeatEndVerse) {
+          // Temporarily disable repeat range when playing outside range
+          repeatCycleCompleted.current = true;
+        } else {
+          // Reset repeat cycle if within range
+          repeatCycleCompleted.current = false;
+        }
+      }
+
+      // Save translation preference to maintain it during navigation
+      import("@/app/_lib/localStorageUtils").then((utils) => {
+        const currentShowTranslation = utils.loadShowTranslation();
+        utils.saveShowTranslation(currentShowTranslation);
+      });
+
       // Update URL to track current verse
       router.replace(
         `/surah/${surahId.toString().padStart(3, "0")}?ayah=${verseNumber}`,
@@ -305,12 +544,41 @@ export default function AudioPlayer({ onVisibilityChange }: AudioPlayerProps) {
   const handleSetRepeatCount = (count: number) => {
     setRepeatCount(count);
     setCurrentRepeat(0); // Reset current repeat counter
+    repeatCycleCompleted.current = false; // Reset cycle completed state
+  };
+
+  // Toggle range repeat mode
+  const handleToggleRangeRepeat = (checked: boolean) => {
+    // Always pause current playback when toggling repeat range
+    if (audioPlayer.isPlaying) {
+      audioPlayer.pause();
+    }
+
+    setIsRepeatRange(checked);
+    repeatCycleCompleted.current = false; // Reset cycle completed state
+
+    if (checked) {
+      // Always force start from the start verse when enabling range mode
+      forceRangeStart.current = true;
+
+      // Clear the last played verse to ensure we start from range start
+      lastPlayedVerse.current = null;
+
+      if (repeatStartVerse === null || repeatEndVerse === null) {
+        // Default to current verse as start if available
+        const start = currentVerse || 1;
+        const end = Math.min(start + 2, totalVerses);
+        setRepeatStartVerse(start);
+        setRepeatEndVerse(end);
+      }
+    }
   };
 
   // Handle replaying current verse
   const handleReplayVerse = () => {
     if (isVerseByVerseMode && currentVerse !== null) {
       setCurrentRepeat(0); // Reset repeat counter
+      repeatCycleCompleted.current = false; // Reset cycle completed state
       audioPlayer.play(verseAudioUrls[currentVerse - 1]);
     }
   };
@@ -386,12 +654,25 @@ export default function AudioPlayer({ onVisibilityChange }: AudioPlayerProps) {
         {isVerseByVerseMode && currentVerse ? (
           <div className="w-full">
             <div className="flex items-center justify-center gap-2">
-              <span className="font-medium">الآية الحالية: {currentVerse}</span>
-              {repeatCount > 1 && (
+              <span className="font-medium">
+                الآية الحالية: {toArabicDigits(currentVerse)}
+              </span>
+              {repeatCount > 1 && !isRepeatRange && (
                 <span className="text-xs bg-primary/10 px-2 py-0.5 rounded-full">
-                  تكرار: {currentRepeat + 1}/{repeatCount}
+                  تكرار: {toArabicDigits(currentRepeat + 1)}/
+                  {toArabicDigits(repeatCount)}
                 </span>
               )}
+              {isRepeatRange &&
+                repeatStartVerse !== null &&
+                repeatEndVerse !== null && (
+                  <span className="text-xs bg-primary/10 px-2 py-0.5 rounded-full">
+                    تكرار الآيات {toArabicDigits(repeatStartVerse)}-
+                    {toArabicDigits(repeatEndVerse)}:{" "}
+                    {toArabicDigits(currentRepeat + 1)}/
+                    {toArabicDigits(repeatCount)}
+                  </span>
+                )}
             </div>
           </div>
         ) : (
@@ -555,7 +836,7 @@ export default function AudioPlayer({ onVisibilityChange }: AudioPlayerProps) {
                   <MoreVertical className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuItem
                   onClick={handleReplayVerse}
                   className="flex gap-2 cursor-pointer"
@@ -564,43 +845,23 @@ export default function AudioPlayer({ onVisibilityChange }: AudioPlayerProps) {
                   <Repeat className="h-4 w-4" />
                   <span>إعادة الآية الحالية</span>
                 </DropdownMenuItem>
+
                 <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={() => handleSetRepeatCount(1)}
-                  className="cursor-pointer"
-                  dir={"rtl"}
-                >
-                  <span className={repeatCount === 1 ? "font-bold" : ""}>
-                    بدون تكرار
-                  </span>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => handleSetRepeatCount(2)}
-                  className="cursor-pointer"
-                  dir={"rtl"}
-                >
-                  <span className={repeatCount === 2 ? "font-bold" : ""}>
-                    تكرار مرتين
-                  </span>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => handleSetRepeatCount(3)}
-                  className="cursor-pointer"
-                  dir={"rtl"}
-                >
-                  <span className={repeatCount === 3 ? "font-bold" : ""}>
-                    تكرار ثلاث مرات
-                  </span>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => handleSetRepeatCount(5)}
-                  className="cursor-pointer"
-                  dir={"rtl"}
-                >
-                  <span className={repeatCount === 5 ? "font-bold" : ""}>
-                    تكرار خمس مرات
-                  </span>
-                </DropdownMenuItem>
+
+                <RepeatOptions
+                  isRepeatRange={isRepeatRange}
+                  setIsRepeatRange={handleToggleRangeRepeat}
+                  repeatStartVerse={repeatStartVerse}
+                  setRepeatStartVerse={setRepeatStartVerse}
+                  repeatEndVerse={repeatEndVerse}
+                  setRepeatEndVerse={setRepeatEndVerse}
+                  repeatCount={repeatCount}
+                  setRepeatCount={handleSetRepeatCount}
+                  totalVerses={totalVerses}
+                  onPause={
+                    audioPlayer.isPlaying ? audioPlayer.pause : undefined
+                  }
+                />
               </DropdownMenuContent>
             </DropdownMenu>
           )}
@@ -640,13 +901,4 @@ export default function AudioPlayer({ onVisibilityChange }: AudioPlayerProps) {
       </div>
     </div>
   );
-}
-
-// Helper to format time in MM:SS
-function formatTime(seconds: number): string {
-  const mins = Math.floor(seconds / 60);
-  const secs = Math.floor(seconds % 60);
-  return `${mins.toString().padStart(2, "0")}:${secs
-    .toString()
-    .padStart(2, "0")}`;
 }

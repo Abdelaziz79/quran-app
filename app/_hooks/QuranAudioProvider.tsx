@@ -7,12 +7,12 @@ import {
   useQuranAudio,
 } from "@/app/_hooks/useQuranAudio";
 import {
+  loadAutoPlayNext,
   loadIsVerseByVerseMode,
-  loadRepeatCount,
   loadSelectedReciter,
   loadVerseByVerseEdition,
+  saveAutoPlayNext,
   saveIsVerseByVerseMode,
-  saveRepeatCount,
   saveSelectedReciter,
   saveVerseByVerseEdition,
   StoredAudioEdition,
@@ -47,9 +47,17 @@ type QuranAudioContextType = ReturnType<typeof useQuranAudio> & {
   playNextVerse: () => void;
   repeatCount: number;
   setRepeatCount: (count: number) => void;
+  repeatStartVerse: number | null;
+  setRepeatStartVerse: (verse: number | null) => void;
+  repeatEndVerse: number | null;
+  setRepeatEndVerse: (verse: number | null) => void;
+  isRepeatRange: boolean;
+  setIsRepeatRange: (isRange: boolean) => void;
   isInitialPreferencesLoading: boolean;
   currentSurah: number | null;
   setCurrentSurah: (surah: number | null) => void;
+  autoPlayNext: boolean;
+  setAutoPlayNext: (autoPlay: boolean) => void;
 };
 
 // Create context with a default undefined value
@@ -75,9 +83,17 @@ export function QuranAudioProvider({ children }: { children: ReactNode }) {
   const [currentVerse, setCurrentVerse] = useState<number | null>(null);
   const [verseAudioUrls, setVerseAudioUrls] = useState<string[]>([]);
   const [repeatCount, setRepeatCountState] = useState<number>(1);
+  const [repeatStartVerse, setRepeatStartVerseState] = useState<number | null>(
+    null
+  );
+  const [repeatEndVerse, setRepeatEndVerseState] = useState<number | null>(
+    null
+  );
+  const [isRepeatRange, setIsRepeatRangeState] = useState<boolean>(false);
   const [isInitialPreferencesLoading, setIsInitialPreferencesLoading] =
     useState<boolean>(true);
   const [currentSurah, setCurrentSurahState] = useState<number | null>(null);
+  const [autoPlayNext, setAutoPlayNextState] = useState<boolean>(true);
 
   // Load settings from local storage on initial mount
   useEffect(() => {
@@ -87,8 +103,16 @@ export function QuranAudioProvider({ children }: { children: ReactNode }) {
       // Load synchronous settings first
       const savedIsVerseByVerseMode = loadIsVerseByVerseMode();
       setIsVerseByVerseModeState(savedIsVerseByVerseMode);
-      const savedRepeatCount = loadRepeatCount();
-      setRepeatCountState(savedRepeatCount);
+
+      // Load auto-play next verse setting
+      const savedAutoPlayNext = loadAutoPlayNext();
+      setAutoPlayNextState(savedAutoPlayNext);
+
+      // Don't load repeat settings - keep them default for each session
+      setRepeatCountState(1);
+      setRepeatStartVerseState(null);
+      setRepeatEndVerseState(null);
+      setIsRepeatRangeState(false);
 
       // Attempt to load selected reciter (async part)
       const reciterLoadPromise = new Promise<void>((resolve) => {
@@ -182,9 +206,29 @@ export function QuranAudioProvider({ children }: { children: ReactNode }) {
     saveIsVerseByVerseMode(isVerseByVerse);
   };
 
+  const setAutoPlayNext = (autoPlay: boolean) => {
+    setAutoPlayNextState(autoPlay);
+    saveAutoPlayNext(autoPlay);
+  };
+
   const setRepeatCount = (count: number) => {
     setRepeatCountState(count);
-    saveRepeatCount(count);
+    // Don't save to localStorage - keep it temporary
+  };
+
+  const setRepeatStartVerse = (verse: number | null) => {
+    setRepeatStartVerseState(verse);
+    // Don't save to localStorage - keep it temporary
+  };
+
+  const setRepeatEndVerse = (verse: number | null) => {
+    setRepeatEndVerseState(verse);
+    // Don't save to localStorage - keep it temporary
+  };
+
+  const setIsRepeatRange = (isRange: boolean) => {
+    setIsRepeatRangeState(isRange);
+    // Don't save to localStorage - keep it temporary
   };
 
   const setCurrentSurah = (surah: number | null) => {
@@ -222,9 +266,17 @@ export function QuranAudioProvider({ children }: { children: ReactNode }) {
     playNextVerse,
     repeatCount,
     setRepeatCount,
+    repeatStartVerse,
+    setRepeatStartVerse,
+    repeatEndVerse,
+    setRepeatEndVerse,
+    isRepeatRange,
+    setIsRepeatRange,
     isInitialPreferencesLoading,
     currentSurah,
     setCurrentSurah,
+    autoPlayNext,
+    setAutoPlayNext,
   };
 
   return (
