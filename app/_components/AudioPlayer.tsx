@@ -105,6 +105,62 @@ export default function AudioPlayer({ onVisibilityChange }: AudioPlayerProps) {
   // Get the total number of verses in this surah
   const totalVerses = AYAH_COUNTS_PER_SURAH_CONST[surahId - 1] || 0;
 
+  // Reset repeat cycle completed flag when changing repeat settings
+  useEffect(() => {
+    repeatCycleCompleted.current = false;
+  }, [isRepeatRange, repeatStartVerse, repeatEndVerse, repeatCount]);
+
+  // Use a ref to track previous surah ID
+  const previousSurahIdRef = useRef<number | null>(null);
+
+  // Reset repeat settings only when changing to a different surah
+  useEffect(() => {
+    // If this is a different surah than before, reset all repeat settings
+    if (previousSurahIdRef.current !== surahId) {
+      // Reset repeat settings when navigating to a different surah
+      console.log(
+        `Surah changed from ${previousSurahIdRef.current} to ${surahId} - resetting repeat settings`
+      );
+      setRepeatCount(1);
+      setIsRepeatRange(false);
+      setRepeatStartVerse(1);
+      const endVerse = Math.min(3, totalVerses);
+      setRepeatEndVerse(endVerse);
+      setCurrentRepeat(0);
+      repeatCycleCompleted.current = false;
+      forceRangeStart.current = false;
+    }
+
+    // Update the previous surah ID ref
+    previousSurahIdRef.current = surahId;
+  }, [
+    surahId,
+    totalVerses,
+    setRepeatCount,
+    setIsRepeatRange,
+    setRepeatStartVerse,
+    setRepeatEndVerse,
+  ]);
+
+  // Force reset repeat settings when surahId changes
+  useEffect(() => {
+    // Always reset when surah changes
+    console.log(`SURAH CHANGED TO ${surahId} - HARD RESET`);
+
+    // Hard reset all repeat settings
+    setRepeatCount(1);
+    setIsRepeatRange(false);
+    setRepeatStartVerse(1);
+    const endVerse = Math.min(3, totalVerses);
+    setRepeatEndVerse(endVerse);
+    setCurrentRepeat(0);
+    repeatCycleCompleted.current = false;
+    forceRangeStart.current = false;
+
+    // Also reset player state
+    audioPlayer.stop();
+  }, [surahId]); // Only depend on surahId
+
   // Handle close player
   const handleClosePlayer = () => {
     // Stop audio playback
@@ -210,11 +266,6 @@ export default function AudioPlayer({ onVisibilityChange }: AudioPlayerProps) {
       lastPlayedVerse.current = currentVerse;
     }
   }, [currentVerse]);
-
-  // Reset repeat cycle completed flag when changing repeat settings
-  useEffect(() => {
-    repeatCycleCompleted.current = false;
-  }, [isRepeatRange, repeatStartVerse, repeatEndVerse, repeatCount]);
 
   // Always force range start when repeat range is active
   useEffect(() => {
@@ -402,6 +453,7 @@ export default function AudioPlayer({ onVisibilityChange }: AudioPlayerProps) {
         // If was paused and resuming, continue from the last played verse
         if (lastPlayedVerse.current && !audioPlayer.isPlaying) {
           verseToPlay = lastPlayedVerse.current;
+          // Don't reset repeat counter when resuming playback
         }
         // Otherwise, if we're in range repeat mode and have a start verse, use that
         else if (
@@ -412,10 +464,14 @@ export default function AudioPlayer({ onVisibilityChange }: AudioPlayerProps) {
           verseToPlay = repeatStartVerse;
           // Make sure we're actually starting from the start verse
           forceRangeStart.current = true;
+          // Only reset repeat counter when starting a new playback session
+          setCurrentRepeat(0);
+        } else {
+          // Only reset repeat counter when starting a new playback session
+          setCurrentRepeat(0);
         }
 
         setCurrentVerse(verseToPlay);
-        setCurrentRepeat(0); // Reset repeat counter when starting playback
         repeatCycleCompleted.current = false; // Reset cycle completed state
 
         // Save translation state to maintain it
@@ -630,8 +686,8 @@ export default function AudioPlayer({ onVisibilityChange }: AudioPlayerProps) {
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-card/95 shadow-lg border-t border-border/80 rtl z-50 backdrop-blur-md">
       {/* Interactive progress bar - Always visible */}
-      <div className="w-full px-4 pt-2 pb-1 flex items-center gap-3">
-        <span className="text-xs font-mono text-muted-foreground w-12 text-center">
+      <div className="w-full px-2 sm:px-4 pt-1 sm:pt-2 pb-0 sm:pb-1 flex items-center gap-1 sm:gap-3">
+        <span className="text-[10px] sm:text-xs font-mono text-muted-foreground w-8 sm:w-12 text-center">
           {formatTime(audioPlayer.currentTime)}
         </span>
         <Slider
@@ -644,21 +700,21 @@ export default function AudioPlayer({ onVisibilityChange }: AudioPlayerProps) {
           className="cursor-pointer flex-1"
           disabled={audioPlayer.duration === 0}
         />
-        <span className="text-xs font-mono text-muted-foreground w-12 text-center">
+        <span className="text-[10px] sm:text-xs font-mono text-muted-foreground w-8 sm:w-12 text-center">
           {formatTime(audioPlayer.duration)}
         </span>
       </div>
 
       {/* Current verse indicator - Show at top when in verse-by-verse mode */}
-      <div className="flex justify-between items-center border-b border-border/20 bg-primary/5 px-4 py-1">
+      <div className="flex justify-between items-center border-b border-border/20 bg-primary/5 px-2 sm:px-4 py-0.5 sm:py-1">
         {isVerseByVerseMode && currentVerse ? (
           <div className="w-full">
-            <div className="flex items-center justify-center gap-2">
+            <div className="flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-base">
               <span className="font-medium">
-                الآية الحالية: {toArabicDigits(currentVerse)}
+                الآية: {toArabicDigits(currentVerse)}
               </span>
               {repeatCount > 1 && !isRepeatRange && (
-                <span className="text-xs bg-primary/10 px-2 py-0.5 rounded-full">
+                <span className="text-[10px] sm:text-xs bg-primary/10 px-1 sm:px-2 py-0.5 rounded-full">
                   تكرار: {toArabicDigits(currentRepeat + 1)}/
                   {toArabicDigits(repeatCount)}
                 </span>
@@ -666,8 +722,8 @@ export default function AudioPlayer({ onVisibilityChange }: AudioPlayerProps) {
               {isRepeatRange &&
                 repeatStartVerse !== null &&
                 repeatEndVerse !== null && (
-                  <span className="text-xs bg-primary/10 px-2 py-0.5 rounded-full">
-                    تكرار الآيات {toArabicDigits(repeatStartVerse)}-
+                  <span className="text-[10px] sm:text-xs bg-primary/10 px-1 sm:px-2 py-0.5 rounded-full whitespace-nowrap">
+                    {toArabicDigits(repeatStartVerse)}-
                     {toArabicDigits(repeatEndVerse)}:{" "}
                     {toArabicDigits(currentRepeat + 1)}/
                     {toArabicDigits(repeatCount)}
@@ -684,37 +740,103 @@ export default function AudioPlayer({ onVisibilityChange }: AudioPlayerProps) {
           variant="ghost"
           size="icon"
           onClick={handleClosePlayer}
-          className="h-8 w-8 rounded-full hover:bg-destructive/10 bg-primary/10"
+          className="h-6 w-6 sm:h-8 sm:w-8 rounded-full hover:bg-destructive/10 bg-primary/10"
         >
-          <X className="h-4 w-4" />
+          <X className="h-3 w-3 sm:h-4 sm:w-4" />
         </Button>
       </div>
 
       {/* Compact player */}
-      <div className="flex items-center justify-between px-4 py-3 w-full max-w-6xl mx-auto">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between px-2 sm:px-4 py-2 sm:py-3 w-full max-w-6xl mx-auto gap-2 sm:gap-0">
+        {/* Mobile view: Controls first, then settings */}
+        <div className="flex justify-center sm:hidden order-1">
+          {/* Main controls - Mobile view */}
+          <div className="flex items-center justify-center gap-2">
+            {isVerseByVerseMode && (
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handlePreviousVerse}
+                disabled={!currentVerse || currentVerse <= 1}
+                className="h-8 w-8 rounded-full"
+              >
+                <SkipForward className="h-3 w-3" />
+              </Button>
+            )}
+
+            <Button
+              variant={audioPlayer.isPlaying ? "secondary" : "default"}
+              size="icon"
+              onClick={
+                audioPlayer.isPlaying ? audioPlayer.pause : handlePlaySurah
+              }
+              disabled={
+                isVerseByVerseMode ? !selectedAudioEdition : !selectedReciter
+              }
+              className={cn(
+                "h-10 w-10 sm:h-14 sm:w-14 rounded-full",
+                audioPlayer.isPlaying
+                  ? "hover:bg-secondary/90"
+                  : "hover:bg-primary/90",
+                "focus:ring-2 focus:ring-primary/30"
+              )}
+            >
+              {audioPlayer.isLoading ? (
+                <Loader2 className="animate-spin h-5 w-5 sm:h-6 sm:w-6" />
+              ) : audioPlayer.isPlaying ? (
+                <Pause className="h-5 w-5 sm:h-6 sm:w-6" />
+              ) : (
+                <Play className="h-5 w-5 sm:h-6 sm:w-6 mr-0.5" />
+              )}
+            </Button>
+
+            {isVerseByVerseMode && (
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleNextVerse}
+                disabled={
+                  !currentVerse || currentVerse >= verseAudioUrls.length
+                }
+                className="h-8 w-8 rounded-full"
+              >
+                <SkipBack className="h-3 w-3" />
+              </Button>
+            )}
+          </div>
+        </div>
+
         {/* Player info with reciter selector */}
-        <div className="flex flex-col gap-2 min-w-0">
+        <div className="flex flex-col gap-1 sm:gap-2 min-w-0 order-2 sm:order-1">
           {/* Playback mode selection */}
           <RadioGroup
             defaultValue={isVerseByVerseMode ? "verse-by-verse" : "full-surah"}
-            className="flex gap-4 mb-2"
+            className="flex justify-center sm:justify-start gap-4 mb-0 sm:mb-2"
             onValueChange={handlePlaybackModeChange}
             value={isVerseByVerseMode ? "verse-by-verse" : "full-surah"}
           >
-            <div className="flex items-center space-x-2 space-x-reverse">
-              <RadioGroupItem value="full-surah" id="full-surah" />
+            <div className="flex items-center space-x-1 sm:space-x-2 space-x-reverse">
+              <RadioGroupItem
+                value="full-surah"
+                id="full-surah"
+                className="h-3 w-3 sm:h-4 sm:w-4"
+              />
               <label
                 htmlFor="full-surah"
-                className="text-sm font-medium cursor-pointer ml-2"
+                className="text-xs sm:text-sm font-medium cursor-pointer ml-1 sm:ml-2"
               >
                 سورة كاملة
               </label>
             </div>
-            <div className="flex items-center space-x-2 space-x-reverse">
-              <RadioGroupItem value="verse-by-verse" id="verse-by-verse" />
+            <div className="flex items-center space-x-1 sm:space-x-2 space-x-reverse">
+              <RadioGroupItem
+                value="verse-by-verse"
+                id="verse-by-verse"
+                className="h-3 w-3 sm:h-4 sm:w-4"
+              />
               <label
                 htmlFor="verse-by-verse "
-                className="text-sm font-medium cursor-pointer ml-2"
+                className="text-xs sm:text-sm font-medium cursor-pointer ml-1 sm:ml-2"
               >
                 آية بآية
               </label>
@@ -722,9 +844,9 @@ export default function AudioPlayer({ onVisibilityChange }: AudioPlayerProps) {
           </RadioGroup>
 
           {/* Reciter selector */}
-          <div className="flex items-center gap-3">
-            <div className="bg-primary/10 p-2 rounded-full flex-shrink-0">
-              <User className="h-5 w-5 text-primary" />
+          <div className="flex items-center gap-2 sm:gap-3 mx-auto sm:mx-0">
+            <div className="bg-primary/10 p-1 sm:p-2 rounded-full flex-shrink-0">
+              <User className="h-3 w-3 sm:h-5 sm:w-5 text-primary" />
             </div>
             <Select
               value={
@@ -737,7 +859,7 @@ export default function AudioPlayer({ onVisibilityChange }: AudioPlayerProps) {
             >
               <SelectTrigger
                 id="reciter-select"
-                className="w-[200px] bg-background/80 text-foreground border-border rounded-lg"
+                className="w-[160px] sm:w-[200px] text-xs sm:text-base h-8 sm:h-10 bg-background/80 text-foreground border-border rounded-lg"
               >
                 <SelectValue
                   placeholder={
@@ -747,7 +869,7 @@ export default function AudioPlayer({ onVisibilityChange }: AudioPlayerProps) {
                   }
                 />
               </SelectTrigger>
-              <SelectContent className="bg-background text-foreground border-border max-h-[300px] z-50 rounded-lg">
+              <SelectContent className="bg-background text-foreground border-border max-h-[300px] z-50 rounded-lg text-xs sm:text-base">
                 {isVerseByVerseMode
                   ? verseByVerseEditions.map((edition) => (
                       <SelectItem
@@ -772,8 +894,8 @@ export default function AudioPlayer({ onVisibilityChange }: AudioPlayerProps) {
           </div>
         </div>
 
-        {/* Main controls - centered */}
-        <div className="flex items-center justify-center gap-3">
+        {/* Desktop view: Main controls - centered */}
+        <div className="hidden sm:flex items-center justify-center gap-3 order-2">
           {isVerseByVerseMode && (
             <Button
               variant="outline"
@@ -824,7 +946,7 @@ export default function AudioPlayer({ onVisibilityChange }: AudioPlayerProps) {
             </Button>
           )}
 
-          {/* Additional options for verse-by-verse mode */}
+          {/* Additional options for verse-by-verse mode on desktop */}
           {isVerseByVerseMode && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -867,8 +989,69 @@ export default function AudioPlayer({ onVisibilityChange }: AudioPlayerProps) {
           )}
         </div>
 
-        {/* Additional controls */}
-        <div className="flex items-center justify-end">
+        {/* Options row for mobile */}
+        <div className="flex justify-center gap-3 sm:hidden order-3">
+          {/* Volume button only (slider hidden on mobile) */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 rounded-full bg-primary/10"
+            onClick={toggleMute}
+          >
+            {volume === 0 ? (
+              <VolumeX className="h-3 w-3" />
+            ) : volume < 50 ? (
+              <Volume1 className="h-3 w-3" />
+            ) : (
+              <Volume2 className="h-3 w-3" />
+            )}
+          </Button>
+
+          {/* Additional options for verse-by-verse mode on mobile */}
+          {isVerseByVerseMode && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 rounded-full bg-primary/10"
+                >
+                  <MoreVertical className="h-3 w-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem
+                  onClick={handleReplayVerse}
+                  className="flex gap-2 cursor-pointer"
+                  dir={"rtl"}
+                >
+                  <Repeat className="h-4 w-4" />
+                  <span>إعادة الآية الحالية</span>
+                </DropdownMenuItem>
+
+                <DropdownMenuSeparator />
+
+                <RepeatOptions
+                  isRepeatRange={isRepeatRange}
+                  setIsRepeatRange={handleToggleRangeRepeat}
+                  repeatStartVerse={repeatStartVerse}
+                  setRepeatStartVerse={setRepeatStartVerse}
+                  repeatEndVerse={repeatEndVerse}
+                  setRepeatEndVerse={setRepeatEndVerse}
+                  repeatCount={repeatCount}
+                  setRepeatCount={handleSetRepeatCount}
+                  totalVerses={totalVerses}
+                  onPause={
+                    audioPlayer.isPlaying ? audioPlayer.pause : undefined
+                  }
+                />
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
+
+        {/* Desktop: Additional controls - Volume on right side */}
+        <div className="hidden sm:flex items-center justify-end order-3">
           {/* Volume control with container for proper RTL orientation */}
           <div className="flex items-center gap-2 bg-primary/10 px-3 py-1.5 rounded-full">
             <Button

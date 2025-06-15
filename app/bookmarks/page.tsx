@@ -66,8 +66,11 @@ export default function BookmarksPage() {
   }
 
   return (
-    <div className="container mx-auto py-8 max-w-4xl">
-      <div className="mb-8">
+    <div
+      className="container mx-auto py-4 md:py-8 px-3 md:px-4 max-w-4xl"
+      dir="rtl"
+    >
+      <div className="mb-4 md:mb-8">
         <Link
           href="/"
           className="flex items-center text-primary hover:underline mb-4"
@@ -76,12 +79,12 @@ export default function BookmarksPage() {
           <span>العودة إلى الصفحة الرئيسية</span>
         </Link>
 
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">المرجعيات المحفوظة</h1>
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4 md:mb-6">
+          <h1 className="text-2xl md:text-3xl font-bold">المرجعيات المحفوظة</h1>
           <Button
             variant="outline"
             size="sm"
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 justify-center w-full sm:w-auto"
             onClick={() => setShowSettings(!showSettings)}
           >
             <Settings size={16} />
@@ -90,19 +93,23 @@ export default function BookmarksPage() {
         </div>
 
         {showSettings && (
-          <Card className="mb-6 bg-muted/30">
-            <CardHeader>
-              <CardTitle>إعدادات المرجعيات</CardTitle>
+          <Card className="mb-4 md:mb-6 bg-muted/30">
+            <CardHeader className="pb-2 md:pb-4">
+              <CardTitle className="text-lg md:text-xl">
+                إعدادات المرجعيات
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                 <div className="space-y-4">
                   <h3 className="font-medium">خيارات العرض</h3>
 
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium">إظهار نص الآية</p>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="font-medium text-sm md:text-base">
+                        إظهار نص الآية
+                      </p>
+                      <p className="text-xs md:text-sm text-muted-foreground">
                         عرض نص الآيات المحفوظة في القائمة
                       </p>
                     </div>
@@ -114,8 +121,10 @@ export default function BookmarksPage() {
 
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium">الوضع المدمج</p>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="font-medium text-sm md:text-base">
+                        الوضع المدمج
+                      </p>
+                      <p className="text-xs md:text-sm text-muted-foreground">
                         تصغير حجم العرض لرؤية المزيد من المرجعيات
                       </p>
                     </div>
@@ -144,7 +153,7 @@ export default function BookmarksPage() {
                     </SelectContent>
                   </Select>
 
-                  <div className="pt-4">
+                  <div className="pt-2 md:pt-4">
                     {isClient && bookmarks.length > 0 && (
                       <Button
                         variant="destructive"
@@ -164,11 +173,11 @@ export default function BookmarksPage() {
       </div>
 
       {isClient && bookmarks.length === 0 ? (
-        <div className="text-center py-12 bg-card rounded-lg border border-border">
-          <h2 className="text-xl font-semibold mb-2">
+        <div className="text-center py-8 md:py-12 bg-card rounded-lg border border-border">
+          <h2 className="text-lg md:text-xl font-semibold mb-2">
             لا توجد أي مرجعيات محفوظة
           </h2>
-          <p className="text-muted-foreground mb-6">
+          <p className="text-sm md:text-base text-muted-foreground mb-6">
             قم بإضافة الآيات إلى المرجعيات أثناء قراءة القرآن
           </p>
           <Link
@@ -179,18 +188,18 @@ export default function BookmarksPage() {
           </Link>
         </div>
       ) : (
-        <div className="space-y-8">
+        <div className="space-y-4 md:space-y-8">
           {sortedBookmarks.map((bookmark) => (
             <div
               key={bookmark.surahId}
               className={`bg-card rounded-lg border border-border ${
-                compactMode ? "p-3" : "p-6"
+                compactMode ? "p-2 md:p-3" : "p-3 md:p-6"
               }`}
             >
               <h2
                 className={`${
-                  compactMode ? "text-xl" : "text-2xl"
-                } font-bold mb-4`}
+                  compactMode ? "text-lg md:text-xl" : "text-xl md:text-2xl"
+                } font-bold mb-2 md:mb-4`}
               >
                 <Link href={`/surah/${bookmark.surahId}`}>
                   <span className="hover:underline">
@@ -199,15 +208,15 @@ export default function BookmarksPage() {
                 </Link>
               </h2>
 
-              <div className="space-y-3">
+              <div className="space-y-2 md:space-y-3">
                 {bookmark.verseIds.map((verseId) => (
                   <div
                     key={verseId}
                     className={`bg-background rounded-md ${
-                      compactMode ? "p-2" : "p-3"
+                      compactMode ? "p-1.5 md:p-2" : "p-2 md:p-3"
                     } hover:bg-primary/5 transition-colors`}
                   >
-                    <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center justify-between mb-2 md:mb-3">
                       <Link
                         href={`/surah/${bookmark.surahId}?ayah=${verseId}`}
                         className="flex-1 hover:underline"
@@ -216,17 +225,19 @@ export default function BookmarksPage() {
                           {verseId !== 0 && (
                             <span
                               className={`flex items-center justify-center ${
-                                compactMode ? "w-6 h-6" : "w-8 h-8"
-                              } rounded-full bg-primary/10 text-primary text-sm font-medium ml-3 relative`}
+                                compactMode
+                                  ? "w-5 h-5 md:w-6 md:h-6"
+                                  : "w-6 h-6 md:w-8 md:h-8"
+                              } rounded-full bg-primary/10 text-primary text-xs md:text-sm font-medium ml-2 md:ml-3 relative`}
                             >
                               {toArabicDigits(verseId)}
                               <Bookmark
-                                size={compactMode ? 10 : 12}
+                                size={compactMode ? 8 : 10}
                                 className="absolute -top-1 -right-1 fill-primary text-primary"
                               />
                             </span>
                           )}
-                          <span>
+                          <span className="text-sm md:text-base">
                             {bookmark.surahNameAr} {toArabicDigits(verseId)}
                           </span>
                         </span>
@@ -235,17 +246,17 @@ export default function BookmarksPage() {
                       <div className="flex items-center">
                         <Link
                           href={`/surah/${bookmark.surahId}?ayah=${verseId}`}
-                          className="p-2 text-primary hover:bg-primary/10 rounded-full transition-colors mr-1"
+                          className="p-1.5 md:p-2 text-primary hover:bg-primary/10 rounded-full transition-colors mr-1"
                         >
-                          <ExternalLink size={16} />
+                          <ExternalLink size={compactMode ? 14 : 16} />
                         </Link>
                         <button
                           onClick={() =>
                             removeBookmark(bookmark.surahId, verseId)
                           }
-                          className="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                          className="p-1.5 md:p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors"
                         >
-                          <Trash2 size={16} />
+                          <Trash2 size={compactMode ? 14 : 16} />
                         </button>
                       </div>
                     </div>
@@ -255,10 +266,10 @@ export default function BookmarksPage() {
                       bookmark.verseTexts &&
                       bookmark.verseTexts[verseId] && (
                         <div
-                          className={`pr-4 font-quran ${
+                          className={`pr-3 md:pr-4 font-quran ${
                             compactMode
-                              ? "text-sm leading-normal line-clamp-2"
-                              : "text-base leading-relaxed"
+                              ? "text-xs md:text-sm leading-normal line-clamp-2"
+                              : "text-sm md:text-base leading-relaxed"
                           }`}
                         >
                           {bookmark.verseTexts[verseId]}

@@ -60,6 +60,10 @@ export function SurahReader({ surahId }: { surahId: string }) {
     setVerseAudioUrls,
     selectedAudioEdition,
     setCurrentSurah,
+    setRepeatCount,
+    setIsRepeatRange,
+    setRepeatStartVerse,
+    setRepeatEndVerse,
   } = useQuranAudioContext();
 
   const {
@@ -375,6 +379,14 @@ export function SurahReader({ surahId }: { surahId: string }) {
     setActiveVerse(null);
     setCurrentVerse(null);
 
+    // Reset repeat options when changing surahs
+    if (isVerseByVerseMode) {
+      setRepeatCount(1); // Reset to default (no repeat)
+      setIsRepeatRange(false);
+      setRepeatStartVerse(null);
+      setRepeatEndVerse(null);
+    }
+
     let targetSurahId;
     if (direction === "next") {
       targetSurahId = currentSurahId < totalSurahs ? currentSurahId + 1 : null;
@@ -393,58 +405,64 @@ export function SurahReader({ surahId }: { surahId: string }) {
 
   return (
     <div
-      className={`container mx-auto py-6 max-w-4xl ${getReadingModeClasses()}`}
+      className={`container mx-auto py-3 md:py-6 px-3 md:px-4 max-w-4xl ${getReadingModeClasses()}`}
     >
-      <div className="mb-6">
-        <div className="flex justify-between items-center mb-4">
+      <div className="mb-4 md:mb-6">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-4">
           <Link
             href="/"
-            className="flex items-center text-primary hover:underline"
+            className="flex items-center text-primary hover:underline text-sm md:text-base"
           >
-            <ChevronRight className="ml-1 h-4 w-4" />
+            <ChevronRight className="ml-1 h-3 w-3 md:h-4 md:w-4" />
             <span>العودة إلى قائمة السور</span>
           </Link>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 md:gap-4">
             <Link
               href="/bookmarks"
-              className="flex items-center text-primary hover:underline"
+              className="flex items-center text-primary hover:underline text-sm md:text-base"
             >
-              <Bookmark className="ml-1 h-4 w-4" />
+              <Bookmark className="ml-1 h-3 w-3 md:h-4 md:w-4" />
               <span>المرجعيات المحفوظة</span>
             </Link>
           </div>
         </div>
 
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold mb-2">{metadata.titleAr}</h1>
-          <p className="text-lg text-muted-foreground">{metadata.title}</p>
-          <div className="mt-4 flex flex-wrap gap-2 justify-center">
+        <div className="text-center mb-4 md:mb-8">
+          <h1 className="text-2xl md:text-4xl font-bold mb-1 md:mb-2">
+            {metadata.titleAr}
+          </h1>
+          <p className="text-base md:text-lg text-muted-foreground">
+            {metadata.title}
+          </p>
+          <div className="mt-3 md:mt-4 flex flex-wrap gap-2 justify-center">
             <button
               onClick={handleToggleTranslation}
-              className="px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+              className="px-3 py-1.5 md:px-4 md:py-2 text-sm md:text-base rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
             >
               {showTranslation ? "إخفاء التفسير" : "إظهار التفسير"}
             </button>
             <button
               onClick={handleReadingMode}
-              className="px-4 py-2 rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/90 transition-colors flex items-center gap-1"
+              className="px-3 py-1.5 md:px-4 md:py-2 text-sm md:text-base rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/90 transition-colors flex items-center gap-1"
             >
-              <Maximize2 size={16} />
+              <Maximize2 size={14} className="md:h-4 md:w-4" />
               {readingMode ? "إنهاء وضع القراءة" : "وضع القراءة"}
             </button>
             <button
               onClick={handleToggleAudioPlayer}
-              className="px-4 py-2 rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/90 transition-colors flex items-center gap-1"
+              className="px-3 py-1.5 md:px-4 md:py-2 text-sm md:text-base rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/90 transition-colors flex items-center gap-1"
             >
-              <Volume2 size={16} />
+              <Volume2 size={14} className="md:h-4 md:w-4" />
               {showAudioPlayer ? "إنهاء الاستماع" : "الاستماع للقراءة"}
             </button>
           </div>
           {translationError && showTranslation && (
-            <div className="mt-2 text-sm text-red-500">{translationError}</div>
+            <div className="mt-2 text-xs md:text-sm text-red-500">
+              {translationError}
+            </div>
           )}
           {showAudioPlayer && (
-            <div className="mt-6">
+            <div className="mt-4 md:mt-6">
               <AudioPlayer
                 onVisibilityChange={(isVisible) =>
                   setShowAudioPlayer(isVisible)
@@ -455,7 +473,7 @@ export function SurahReader({ surahId }: { surahId: string }) {
         </div>
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-4 md:space-y-6">
         {verses.map((verse) => (
           <AyahVerse
             key={verse.id}
@@ -491,36 +509,36 @@ export function SurahReader({ surahId }: { surahId: string }) {
         {hasMore && (
           <div
             ref={loadingRef}
-            className="flex justify-center p-4 items-center"
+            className="flex justify-center p-3 md:p-4 items-center"
           >
-            <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-primary"></div>
+            <div className="animate-spin rounded-full h-5 w-5 md:h-6 md:w-6 border-t-2 border-b-2 border-primary"></div>
           </div>
         )}
 
         {!hasMore && (
-          <div className="flex justify-between items-center mt-8 pt-4 border-t">
+          <div className="flex justify-between items-center mt-6 md:mt-8 pt-3 md:pt-4 border-t">
             <button
               onClick={() => handleNavigateToSurah("prev")}
-              className={`px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors flex items-center gap-2 ${
+              className={`px-3 py-1.5 md:px-4 md:py-2 text-sm md:text-base rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors flex items-center gap-1 md:gap-2 ${
                 parseInt(surahId) <= 1 ? "opacity-50 cursor-not-allowed" : ""
               }`}
               disabled={parseInt(surahId) <= 1}
             >
-              <ArrowRight size={16} />
-              <span>السورة السابقة</span>
+              <ArrowRight size={14} className="md:h-4 md:w-4" />
+              <span>السابقة</span>
             </button>
 
             <button
               onClick={() => handleNavigateToSurah("next")}
-              className={`px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors flex items-center gap-2 ${
+              className={`px-3 py-1.5 md:px-4 md:py-2 text-sm md:text-base rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors flex items-center gap-1 md:gap-2 ${
                 parseInt(surahId) >= AYAH_COUNTS_PER_SURAH_CONST.length
                   ? "opacity-50 cursor-not-allowed"
                   : ""
               }`}
               disabled={parseInt(surahId) >= AYAH_COUNTS_PER_SURAH_CONST.length}
             >
-              <span>السورة التالية</span>
-              <ArrowLeft size={16} />
+              <span>التالية</span>
+              <ArrowLeft size={14} className="md:h-4 md:w-4" />
             </button>
           </div>
         )}

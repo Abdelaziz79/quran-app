@@ -17,6 +17,9 @@ const KEYS = {
   SAVE_READING_POSITION: "quran-app-save-reading-position",
   LAST_READ_SURAH: "quran-app-last-read-surah",
   LAST_READ_VERSE: "quran-app-last-read-verse",
+  // New keys for memorization
+  MEMORIZATION_PROGRESS: "quran-app-memorization-progress",
+  MEMORIZATION_SETTINGS: "quran-app-memorization-settings",
 };
 
 // Type definitions for stored data
@@ -44,6 +47,28 @@ export type QuranFontFamily =
   | "Uthmani";
 export type QuranFontSize = "small" | "medium" | "large" | "x-large";
 export type QuranLineHeight = "compact" | "normal" | "relaxed" | "loose";
+
+// Memorization types
+export type MemorizationLesson = {
+  surahId: string;
+  lessonId: number;
+  startVerse: number;
+  endVerse: number;
+  completed: boolean;
+  completedDate?: string;
+  mastery: number; // 0-100 percentage indicating mastery level
+};
+
+export type MemorizationProgress = {
+  [surahId: string]: MemorizationLesson[];
+};
+
+export type MemorizationSettings = {
+  defaultVerseCount: number;
+  dailyGoal: number;
+  reviewEnabled: boolean;
+  lastReviewDate?: string;
+};
 
 // Save selected reciter (full surah mode)
 export const saveSelectedReciter = (reciter: StoredReciter | null): void => {
@@ -342,3 +367,129 @@ export function saveDailyAyahSelection(surahId: string, ayahId: number): void {
     console.error("Error saving daily ayah to localStorage:", error);
   }
 }
+
+// Load memorization settings
+export const loadMemorizationSettings = (): MemorizationSettings => {
+  if (typeof window === "undefined")
+    return { defaultVerseCount: 5, dailyGoal: 1, reviewEnabled: true };
+
+  try {
+    const savedSettings = localStorage.getItem(KEYS.MEMORIZATION_SETTINGS);
+    if (savedSettings) {
+      return JSON.parse(savedSettings) as MemorizationSettings;
+    }
+  } catch (error) {
+    console.error("Error loading memorization settings:", error);
+  }
+
+  // Default settings
+  return { defaultVerseCount: 5, dailyGoal: 1, reviewEnabled: true };
+};
+
+// Save memorization settings
+export const saveMemorizationSettings = (
+  settings: MemorizationSettings
+): void => {
+  if (typeof window === "undefined") return;
+
+  try {
+    localStorage.setItem(KEYS.MEMORIZATION_SETTINGS, JSON.stringify(settings));
+  } catch (error) {
+    console.error("Error saving memorization settings:", error);
+  }
+};
+
+// Load memorization progress
+export const loadMemorizationProgress = (): MemorizationProgress => {
+  if (typeof window === "undefined") return {};
+
+  try {
+    const savedProgress = localStorage.getItem(KEYS.MEMORIZATION_PROGRESS);
+    if (savedProgress) {
+      return JSON.parse(savedProgress) as MemorizationProgress;
+    }
+  } catch (error) {
+    console.error("Error loading memorization progress:", error);
+  }
+
+  return {};
+};
+
+// Save memorization progress
+export const saveMemorizationProgress = (
+  progress: MemorizationProgress
+): void => {
+  if (typeof window === "undefined") return;
+
+  try {
+    localStorage.setItem(KEYS.MEMORIZATION_PROGRESS, JSON.stringify(progress));
+  } catch (error) {
+    console.error("Error saving memorization progress:", error);
+  }
+};
+
+// Save completed lesson
+export const completeMemorizationLesson = (
+  surahId: string,
+  lessonId: number,
+  mastery: number = 100
+): void => {
+  if (typeof window === "undefined") return;
+
+  const progress = loadMemorizationProgress();
+
+  // Initialize surah if it doesn't exist
+  if (!progress[surahId]) {
+    progress[surahId] = [];
+  }
+
+  // Find the lesson
+  const lessonIndex = progress[surahId].findIndex(
+    (l) => l.lessonId === lessonId
+  );
+
+  if (lessonIndex !== -1) {
+    // Update existing lesson
+    progress[surahId][lessonIndex].completed = true;
+    progress[surahId][lessonIndex].completedDate = new Date().toISOString();
+    progress[surahId][lessonIndex].mastery = mastery;
+  } else {
+    // This shouldn't happen if lessons are properly initialized
+    console.warn(
+      `Lesson ${lessonId} for Surah ${surahId} not found in progress`
+    );
+  }
+
+  saveMemorizationProgress(progress);
+};
+
+// Get memorization stats
+export const getMemorizationStats = () => {
+  const progress = loadMemorizationProgress();
+  let totalLessons = 0;
+  let completedLessons = 0;
+  let totalMastery = 0;
+
+  Object.values(progress).forEach((surahLessons) => {
+    totalLessons += surahLessons.length;
+    surahLessons.forEach((lesson) => {
+      if (lesson.completed) {
+        completedLessons++;
+        totalMastery += lesson.mastery;
+      }
+    });
+  });
+
+  const averageMastery =
+    completedLessons > 0 ? Math.round(totalMastery / completedLessons) : 0;
+
+  return {
+    totalLessons,
+    completedLessons,
+    progress:
+      totalLessons > 0
+        ? Math.round((completedLessons / totalLessons) * 100)
+        : 0,
+    averageMastery,
+  };
+};
