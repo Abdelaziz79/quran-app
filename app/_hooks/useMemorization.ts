@@ -59,6 +59,7 @@ export function useMemorization() {
       // Calculate stats
       calculateStats(savedProgress);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Calculate statistics from progress data

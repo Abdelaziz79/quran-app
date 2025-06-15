@@ -159,7 +159,8 @@ export default function AudioPlayer({ onVisibilityChange }: AudioPlayerProps) {
 
     // Also reset player state
     audioPlayer.stop();
-  }, [surahId]); // Only depend on surahId
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [surahId]);
 
   // Handle close player
   const handleClosePlayer = () => {
