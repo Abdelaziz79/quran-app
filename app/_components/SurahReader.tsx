@@ -32,6 +32,7 @@ import {
   saveShowTranslation,
 } from "@/app/_lib/localStorageUtils";
 import { AYAH_COUNTS_PER_SURAH_CONST } from "@/app/_constants/ayahCounts";
+import { MUHSAF_PAGES } from "@/app/_constants/quranPages";
 
 export function SurahReader({ surahId }: { surahId: string }) {
   const searchParams = useSearchParams();
@@ -475,35 +476,51 @@ export function SurahReader({ surahId }: { surahId: string }) {
 
       <div className="space-y-4 md:space-y-6">
         {verses.map((verse) => (
-          <AyahVerse
-            key={verse.id}
-            verse={verse}
-            translationText={translation[verse.id]}
-            showTranslation={showTranslation}
-            isActive={activeVerse === verse.id}
-            isBookmarked={isVerseBookmarked(surahId, verse.id)}
-            isHighlightedBookmark={highlightedBookmark === verse.id}
-            readingMode={readingMode}
-            theme={theme}
-            isCopied={copiedVerse === verse.id}
-            dropdownOpen={openDropdownVerseId === verse.id}
-            onVerseClick={handleVerseClick}
-            onCopy={copyVerse}
-            onToggleBookmark={handleToggleBookmark}
-            onShare={shareVerse}
-            onRecite={reciteVerse}
-            onDropdownToggle={(isOpen) => {
-              if (isOpen) {
-                setOpenDropdownVerseId(verse.id);
-              } else if (openDropdownVerseId === verse.id) {
-                // Only close if it's this one
-                setOpenDropdownVerseId(null);
-              }
-            }}
-            setVerseRef={(el) => {
-              verseRefs.current[verse.id] = el;
-            }}
-          />
+          <div key={verse.id}>
+            <AyahVerse
+              verse={verse}
+              translationText={translation[verse.id]}
+              showTranslation={showTranslation}
+              isActive={activeVerse === verse.id}
+              isBookmarked={isVerseBookmarked(surahId, verse.id)}
+              isHighlightedBookmark={highlightedBookmark === verse.id}
+              readingMode={readingMode}
+              theme={theme}
+              isCopied={copiedVerse === verse.id}
+              dropdownOpen={openDropdownVerseId === verse.id}
+              onVerseClick={handleVerseClick}
+              onCopy={copyVerse}
+              onToggleBookmark={handleToggleBookmark}
+              onShare={shareVerse}
+              onRecite={reciteVerse}
+              onDropdownToggle={(isOpen) => {
+                if (isOpen) {
+                  setOpenDropdownVerseId(verse.id);
+                } else if (openDropdownVerseId === verse.id) {
+                  // Only close if it's this one
+                  setOpenDropdownVerseId(null);
+                }
+              }}
+              setVerseRef={(el) => {
+                verseRefs.current[verse.id] = el;
+              }}
+            />
+            {verse.absoluteAyahId &&
+            MUHSAF_PAGES.includes(verse.absoluteAyahId + 1) ? (
+              <div className="text-xs text-muted-foreground">
+                <div className="flex justify-center mt-4 mb-2">
+                  <div className="bg-muted px-3 py-1 rounded-full text-xs md:text-sm text-muted-foreground flex items-center gap-1">
+                    <span className="font-semibold">الصفحة:</span>
+                    <span className="font-arabic">
+                      {toArabicDigits(
+                        MUHSAF_PAGES.indexOf(verse.absoluteAyahId + 1)
+                      )}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+          </div>
         ))}
 
         {hasMore && (

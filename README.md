@@ -1,36 +1,133 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 📖 القرآن الكريم - Quran Project
 
-## Getting Started
+![Quran Project](public/icons/icon.png)
 
-First, run the development server:
+A modern web application for reading, memorizing, and reviewing the Holy Quran, built with Next.js and React.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## ✨ Features
+
+- **🔍 Quran Browser**: Browse and read through all 114 surahs of the Quran
+- **📱 PWA Support**: Install as a Progressive Web App on mobile and desktop devices
+- **🎧 Audio Recitation**: Listen to high-quality recitation with verse repetition options
+- **📚 Memorization System**: Structured lessons to help memorize the Quran with spaced repetition
+- **🔖 Bookmarking**: Save your reading position and favorite verses
+- **🌙 Dark Mode**: Support for light and dark themes
+- **🇦🇷 Arabic Support**: Full support for Arabic text with proper typography
+- **📊 Progress Tracking**: Track your memorization progress
+- **🔄 Repeat Options**: Customizable verse repetition for effective memorization
+- **📅 Ayah of the Day**: Daily Quranic verses with translations
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Node.js 18+ and npm/yarn
+
+### Installation
+
+1. Clone the repository
+
+   ```bash
+   git clone https://github.com/your-username/quran-project.git
+   cd quran-project
+   ```
+
+2. Install dependencies
+
+   ```bash
+   npm install
+   # or
+   yarn install
+   ```
+
+3. Run the development server
+
+   ```bash
+   npm run dev
+   # or
+   yarn dev
+   ```
+
+4. Open [http://localhost:3000](http://localhost:3000) in your browser
+
+## 🧩 Project Structure
+
+```
+quran-project/
+├── app/                  # Main app directory (Next.js App Router)
+│   ├── _components/      # Shared UI components
+│   │   ├── AudioPlayer.tsx        # Quran audio player
+│   │   ├── SurahReader.tsx        # Surah reading component
+│   │   ├── MemorizationLesson.tsx # Memorization lesson interface
+│   │   └── ...
+│   ├── _hooks/           # Custom React hooks
+│   ├── _lib/             # Utility functions and helpers
+│   ├── surah/            # Surah reading pages
+│   ├── memorization/     # Memorization system pages
+│   ├── bookmarks/        # Bookmark management pages
+│   └── settings/         # User settings pages
+├── components/           # UI component library
+├── lib/                  # Core libraries and utilities
+├── public/               # Static files and assets
+└── ...
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 📱 Mobile Features
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+The app is designed to work well on mobile devices with:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Responsive design for all screen sizes
+- Touch-friendly controls
+- PWA installation support
+- Offline functionality
 
-## Learn More
+## 🌐 API Integration
 
-To learn more about Next.js, take a look at the following resources:
+This project uses the Quran API for fetching:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Surah data and verses
+- Audio recitations
+- Translations
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 🎨 UI Components
 
-## Deploy on Vercel
+The project uses a custom UI component system built on:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- TailwindCSS for styling
+- Radix UI for accessible components
+- Lucide React for icons
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 🔧 Configuration
+
+You can customize various aspects of the app through the settings page, including:
+
+- Audio reciter selection
+- Display preferences
+- Memorization settings
+- Reading mode preferences
+
+## 📦 Build and Deployment
+
+To build the project for production:
+
+```bash
+npm run build
+# or
+yarn build
+```
+
+The build output will be in the `.next` directory.
+
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 🙏 Acknowledgements
+
+- Quran API providers
+- Open-source contributors
+- All reciters whose audio recitations are used in the app
+
+---
+
+_This project aims to make the Quran more accessible for reading and memorization while providing modern web features._

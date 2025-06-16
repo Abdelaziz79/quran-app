@@ -8,24 +8,24 @@ import { QuranSettingsProvider } from "@/app/_hooks/QuranSettingsProvider";
 import { ReadingModeProvider } from "@/app/_hooks/ReadingModeProvider";
 import "@/app/globals.css";
 import { Metadata } from "next";
-// import { Cairo, Lateef, Scheherazade_New } from "next/font/google";
+import { Cairo, Lateef, Scheherazade_New } from "next/font/google";
 
-// const cairo = Cairo({
-//   subsets: ["arabic"],
-//   variable: "--font-cairo",
-// });
+const cairo = Cairo({
+  subsets: ["arabic"],
+  variable: "--font-cairo",
+});
 
-// const lateef = Lateef({
-//   subsets: ["arabic"],
-//   weight: ["400", "700"],
-//   variable: "--font-lateef",
-// });
+const lateef = Lateef({
+  subsets: ["arabic"],
+  weight: ["400", "700"],
+  variable: "--font-lateef",
+});
 
-// const scheherazadeNew = Scheherazade_New({
-//   subsets: ["arabic"],
-//   weight: ["400", "700"],
-//   variable: "--font-scheherazade",
-// });
+const scheherazadeNew = Scheherazade_New({
+  subsets: ["arabic"],
+  weight: ["400", "700"],
+  variable: "--font-scheherazade",
+});
 
 export const metadata: Metadata = {
   title: "القرآن الكريم - للقراءة والحفظ والمراجعة",
@@ -56,6 +56,9 @@ export const metadata: Metadata = {
       },
     ],
   },
+  other: {
+    google: "notranslate",
+  },
 };
 
 export default function RootLayout({
@@ -64,16 +67,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="ar" dir="rtl" suppressHydrationWarning>
+    <html lang="ar" dir="rtl" suppressHydrationWarning className="notranslate">
       <head>
         <link rel="apple-touch-icon" href="/icons/icon.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="القرآن الكريم" />
         <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="google" content="notranslate" />
       </head>
       <body
-      // className={`${cairo.variable} ${lateef.variable} ${scheherazadeNew.variable} antialiased`}
+        className={`${cairo.variable} ${lateef.variable} ${scheherazadeNew.variable} antialiased`}
       >
         <QueryProvider>
           <ThemeProvider>

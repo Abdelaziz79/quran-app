@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
 import { toArabicDigits, normalizeArabicText } from "@/app/_lib/quranUtils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
 
 // Define the surah data structure
 interface Surah {
@@ -157,6 +158,13 @@ export function SearchDialog() {
     }
   };
 
+  // Clear search
+  const handleClearSearch = () => {
+    setQuery("");
+    setSurahResults([]);
+    setVerseResults([]);
+  };
+
   // Handle result click
   const handleResultClick = (result: SearchResult | ApiVerseResult) => {
     // Check if it's a surah result
@@ -189,18 +197,40 @@ export function SearchDialog() {
           <Search className="h-[1.2rem] w-[1.2rem]" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px] rtl" dir="rtl">
-        <DialogHeader>
-          <DialogTitle className="text-center">البحث في القرآن</DialogTitle>
+      <DialogContent
+        className={cn(
+          "w-[calc(100%-2rem)] sm:max-w-[500px] rtl max-h-[90vh] overflow-hidden",
+          "p-4 sm:p-6 top-[5%] translate-y-0",
+          "data-[state=open]:slide-in-from-top-[5%]",
+          "data-[state=closed]:slide-out-to-top-[5%]"
+        )}
+        dir="rtl"
+      >
+        <DialogHeader className="mb-4">
+          <DialogTitle className="text-center text-lg sm:text-xl">
+            البحث في القرآن
+          </DialogTitle>
         </DialogHeader>
-        <div className="flex flex-col gap-4">
-          <div className="flex gap-2">
+        <div className="flex flex-col gap-4 overflow-hidden">
+          <div className="relative">
             <Input
               placeholder="اكتب اسم السورة أو رقم الآية أو جزء من النص"
               value={query}
               onChange={(e) => handleSearch(e.target.value)}
-              className="flex-1"
+              className="pr-4 py-6 text-base"
+              autoComplete="off"
+              autoFocus
             />
+            {query && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full opacity-70 hover:opacity-100"
+                onClick={handleClearSearch}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
           </div>
 
           <Tabs
@@ -209,40 +239,44 @@ export function SearchDialog() {
             className="w-full"
             dir="rtl"
           >
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="surah">
+            <TabsList className="grid w-full grid-cols-2 h-14">
+              <TabsTrigger value="surah" className="text-base py-3">
                 السور ({surahResults.length})
               </TabsTrigger>
-              <TabsTrigger value="verse">
+              <TabsTrigger value="verse" className="text-base py-3">
                 الآيات ({verseResults.length})
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="surah" className="mt-2">
+            <TabsContent value="surah" className="mt-3 overflow-hidden">
               {isLoading && (
-                <div className="text-center py-4">جاري البحث...</div>
+                <div className="text-center py-6">جاري البحث...</div>
               )}
               {!isLoading && surahResults.length === 0 && query && (
-                <div className="text-center py-4 text-muted-foreground">
+                <div className="text-center py-6 text-muted-foreground">
                   لا توجد نتائج للبحث
                 </div>
               )}
               {surahResults.length > 0 && (
-                <div className="max-h-[300px] overflow-y-auto rounded-md border p-2">
-                  <div className="space-y-2">
+                <div className="max-h-[45vh] overflow-y-auto rounded-md border">
+                  <div className="space-y-1">
                     {surahResults.map((result, index) => (
                       <div
                         key={`${result.type}-${result.surahId}-${index}`}
-                        className="flex items-center justify-between p-2 rounded-lg hover:bg-muted cursor-pointer"
+                        className="flex items-center justify-between p-3 sm:p-4 hover:bg-muted cursor-pointer active:bg-muted/80 transition-colors"
                         onClick={() => handleResultClick(result)}
                       >
                         <div className="flex flex-col">
-                          <span className="font-medium">
+                          <span className="font-medium text-base sm:text-lg">
                             {result.surahName} (
                             {toArabicDigits(parseInt(result.surahId))})
                           </span>
                         </div>
-                        <Button variant="ghost" size="sm" className="mr-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="py-1 px-3 text-xs h-8 hover:bg-primary/10 hover:text-primary"
+                        >
                           فتح
                         </Button>
                       </div>
@@ -252,35 +286,35 @@ export function SearchDialog() {
               )}
             </TabsContent>
 
-            <TabsContent value="verse" className="mt-2">
+            <TabsContent value="verse" className="mt-3 overflow-hidden">
               {isLoading && (
-                <div className="text-center py-4">جاري البحث...</div>
+                <div className="text-center py-6">جاري البحث...</div>
               )}
               {!isLoading && verseResults.length === 0 && query && (
-                <div className="text-center py-4 text-muted-foreground">
+                <div className="text-center py-6 text-muted-foreground">
                   لا توجد نتائج للبحث
                 </div>
               )}
               {verseResults.length > 0 && (
-                <div className="max-h-[300px] overflow-y-auto rounded-md border p-2">
-                  <div className="space-y-2">
+                <div className="max-h-[45vh] overflow-y-auto rounded-md border">
+                  <div>
                     {verseResults.map((result, index) => (
                       <div
                         key={`verse-${result.surahId}-${result.verseNumber}-${index}`}
-                        className="flex flex-col p-3 rounded-lg hover:bg-muted cursor-pointer"
+                        className="flex flex-col p-4 hover:bg-muted cursor-pointer active:bg-muted/80 transition-colors border-b last:border-b-0"
                         onClick={() => handleResultClick(result)}
                       >
-                        <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center justify-between mb-2">
                           <span className="font-medium">
                             {result.surahName} ({toArabicDigits(result.surahId)}
                             )
                           </span>
-                          <span className="text-sm bg-primary/10 px-2 py-0.5 rounded-full">
+                          <span className="text-sm bg-primary/10 px-3 py-1 rounded-full">
                             الآية {toArabicDigits(result.verseNumber)}
                           </span>
                         </div>
                         {result.verseText && (
-                          <p className="text-sm text-right">
+                          <p className="text-sm sm:text-base text-right leading-relaxed">
                             {result.highlight ? (
                               <span className="text-muted-foreground">
                                 {result.highlight.startsWith("...") ? (
@@ -297,7 +331,7 @@ export function SearchDialog() {
                                 ) : null}
                               </span>
                             ) : (
-                              <span className="text-muted-foreground line-clamp-2">
+                              <span className="text-muted-foreground line-clamp-3">
                                 {result.verseText}
                               </span>
                             )}
@@ -311,7 +345,7 @@ export function SearchDialog() {
             </TabsContent>
           </Tabs>
 
-          <div className="text-xs text-muted-foreground text-center">
+          <div className="text-xs sm:text-sm text-muted-foreground text-center px-1 mt-1">
             يمكنك البحث عن السورة بالاسم أو الرقم، أو البحث عن آية محددة
             بالصيغة: رقم_السورة:رقم_الآية، أو البحث بجزء من نص الآية
           </div>

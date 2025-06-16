@@ -6,6 +6,7 @@ import {
   getDailyAyahSelection,
   saveDailyAyahSelection,
 } from "@/app/_lib/localStorageUtils";
+import { getAbsoluteAyahNumber } from "@/app/_lib/quranUtils";
 
 export type Surah = {
   index: string;
@@ -148,10 +149,19 @@ export function useSurahDetail(surahId: string) {
     error: isError ? (error as Error).message || "An error occurred" : null,
     isLoading,
     verses: surah?.verse
-      ? Object.entries(surah.verse).map(([id, text]) => ({
-          id: parseInt(id.replace("verse_", "")),
-          text,
-        }))
+      ? Object.entries(surah.verse).map(([id, text]) => {
+          const verseId = parseInt(id.replace("verse_", ""));
+          const absoluteAyahId = getAbsoluteAyahNumber(
+            parseInt(surahId),
+            verseId
+          );
+
+          return {
+            id: verseId,
+            text,
+            absoluteAyahId,
+          };
+        })
       : [],
   };
 }
@@ -171,10 +181,19 @@ export function usePaginatedSurahDetail(
   const metadata = data?.metadata || null;
 
   const allVerses = surah?.verse
-    ? Object.entries(surah.verse).map(([id, text]) => ({
-        id: parseInt(id.replace("verse_", "")),
-        text,
-      }))
+    ? Object.entries(surah.verse).map(([id, text]) => {
+        const verseId = parseInt(id.replace("verse_", ""));
+        const absoluteAyahId = getAbsoluteAyahNumber(
+          parseInt(surahId),
+          verseId
+        );
+
+        return {
+          id: verseId,
+          text,
+          absoluteAyahId,
+        };
+      })
     : [];
 
   // Custom hook to manage pagination state
@@ -337,6 +356,10 @@ export function useRandomAyah() {
     const ayahKey = `verse_${randomSelection.ayahId}`;
     const ayahText = surahData.surah.verse[ayahKey];
     const translationText = translationData[randomSelection.ayahId];
+    const absoluteAyahId = getAbsoluteAyahNumber(
+      parseInt(randomSelection.surahId),
+      randomSelection.ayahId
+    );
 
     return {
       surahId: randomSelection.surahId,
@@ -345,6 +368,7 @@ export function useRandomAyah() {
       ayahId: randomSelection.ayahId,
       ayahText,
       translationText,
+      absoluteAyahId,
       isLoading: false,
       error: null,
     };
