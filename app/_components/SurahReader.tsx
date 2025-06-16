@@ -405,7 +405,7 @@ export function SurahReader({ surahId }: { surahId: string }) {
 
   return (
     <div
-      className={`container mx-auto py-3 md:py-6 px-3 md:px-4 max-w-4xl ${getReadingModeClasses()}`}
+      className={`container mb-20 mx-auto py-3 md:py-6 px-3 md:px-4 max-w-4xl ${getReadingModeClasses()}`}
     >
       <div className="mb-4 md:mb-6">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-4">

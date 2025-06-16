@@ -8,26 +8,9 @@ import { useMemorizationContext } from "@/app/_hooks/MemorizationProvider";
 import { useSurahDetail, useSurahList } from "@/app/_hooks/useQuranData";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import {
-  Book,
-  BookCheck,
-  Brain,
-  Download,
-  GraduationCap,
-  Menu,
-} from "lucide-react";
+import { Book, BookCheck, Brain, GraduationCap, Menu } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-
-// Define the BeforeInstallPromptEvent interface
-interface BeforeInstallPromptEvent extends Event {
-  readonly platforms: string[];
-  readonly userChoice: Promise<{
-    outcome: "accepted" | "dismissed";
-    platform: string;
-  }>;
-  prompt(): Promise<void>;
-}
 
 export default function MemorizationPage() {
   // Get surahs list
@@ -41,10 +24,6 @@ export default function MemorizationPage() {
   const [selectedSurahId, setSelectedSurahId] = useState<string>("001");
   const [selectedLessonId, setSelectedLessonId] = useState<number>(1);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isInstallable, setIsInstallable] = useState(false);
-  const [deferredPrompt, setDeferredPrompt] =
-    useState<BeforeInstallPromptEvent | null>(null);
-
   // Get the content of the selected surah
   const {
     verses,
@@ -54,36 +33,6 @@ export default function MemorizationPage() {
   } = useSurahDetail(selectedSurahId);
 
   const { getLessonsForSurah } = useMemorizationContext();
-
-  // Check if the app can be installed
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      window.addEventListener("beforeinstallprompt", (e: Event) => {
-        // Prevent Chrome 67 and earlier from automatically showing the prompt
-        e.preventDefault();
-        // Stash the event so it can be triggered later
-        setDeferredPrompt(e as BeforeInstallPromptEvent);
-        // Update UI to notify the user they can add to home screen
-        setIsInstallable(true);
-      });
-    }
-  }, []);
-
-  // Handle install button click
-  const handleInstallClick = async () => {
-    if (deferredPrompt) {
-      // Show the install prompt
-      deferredPrompt.prompt();
-      // Wait for the user to respond to the prompt
-      const { outcome } = await deferredPrompt.userChoice;
-      // We no longer need the prompt, clear it
-      setDeferredPrompt(null);
-      // Hide the install button
-      if (outcome === "accepted") {
-        setIsInstallable(false);
-      }
-    }
-  };
 
   // Ensure we have at least one lesson when surah changes
   useEffect(() => {
@@ -100,18 +49,30 @@ export default function MemorizationPage() {
 
   // Handle surah selection
   const handleSelectSurah = (surahId: string) => {
-    setSelectedSurahId(surahId);
-    // Close sidebar on mobile after selection
+    // First set the sidebar to closed to prevent any lingering overlay
     setIsSidebarOpen(false);
+    // Then update the selected surah
+    setSelectedSurahId(surahId);
+
+    // Ensure any focus is removed from sheet elements
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
   };
 
   // Handle lesson selection
   const handleSelectLesson = (lessonId: number) => {
-    setSelectedLessonId(lessonId);
-    // Close sidebar on mobile after selection
+    // First set the sidebar to closed
     setIsSidebarOpen(false);
+    // Then update the selected lesson
+    setSelectedLessonId(lessonId);
     // Scroll to top when changing lesson
     window.scrollTo({ top: 0, behavior: "smooth" });
+
+    // Ensure any focus is removed from sheet elements
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
   };
 
   // Handle when a lesson is completed
@@ -129,6 +90,25 @@ export default function MemorizationPage() {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
+
+  // Reset pointer-events on the body element when sidebar closes
+  useEffect(() => {
+    if (!isSidebarOpen) {
+      // Small delay to ensure the sheet has fully closed
+      const timer = setTimeout(() => {
+        document.body.style.removeProperty("pointer-events");
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [isSidebarOpen]);
+
+  // Clean up on component unmount
+  useEffect(() => {
+    return () => {
+      // Reset pointer-events when navigating away from the page
+      document.body.style.removeProperty("pointer-events");
+    };
+  }, []);
 
   // Loading states
   const isLoading = surahsLoading || surahLoading;
@@ -174,23 +154,21 @@ export default function MemorizationPage() {
               <span>المرجعيات</span>
             </Button>
           </Link>
-          {isInstallable && (
-            <Button
-              variant="default"
-              size="sm"
-              className="flex items-center gap-2"
-              onClick={handleInstallClick}
-            >
-              <Download className="h-4 w-4" />
-              <span>تثبيت التطبيق</span>
-            </Button>
-          )}
         </div>
       </div>
 
       {/* Mobile Sidebar Toggle */}
       <div className="md:hidden mb-4">
-        <Sheet open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
+        <Sheet
+          open={isSidebarOpen}
+          onOpenChange={(open) => {
+            setIsSidebarOpen(open);
+            // Immediately reset pointer-events when closing
+            if (!open) {
+              document.body.style.removeProperty("pointer-events");
+            }
+          }}
+        >
           <SheetTrigger asChild>
             <Button
               variant="outline"
@@ -205,21 +183,28 @@ export default function MemorizationPage() {
               </span>
             </Button>
           </SheetTrigger>
-          <SheetContent
-            side="right"
-            className="w-[85vw] sm:w-[350px] p-0"
-            dir="rtl"
-          >
-            <div className="h-full overflow-y-auto">
-              <MemorizationSidebar
-                surahs={surahs}
-                selectedSurahId={selectedSurahId}
-                onSelectSurah={handleSelectSurah}
-                onSelectLesson={handleSelectLesson}
-                isMobile={true}
-              />
-            </div>
-          </SheetContent>
+          {isSidebarOpen && (
+            <SheetContent
+              side="right"
+              className="w-[85vw] sm:w-[350px] p-0 z-50"
+              dir="rtl"
+              onCloseAutoFocus={(e) => {
+                e.preventDefault();
+                // Reset pointer-events on body
+                document.body.style.removeProperty("pointer-events");
+              }}
+            >
+              <div className="h-full overflow-y-auto">
+                <MemorizationSidebar
+                  surahs={surahs}
+                  selectedSurahId={selectedSurahId}
+                  onSelectSurah={handleSelectSurah}
+                  onSelectLesson={handleSelectLesson}
+                  isMobile={true}
+                />
+              </div>
+            </SheetContent>
+          )}
         </Sheet>
       </div>
 

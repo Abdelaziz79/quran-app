@@ -8,24 +8,24 @@ import { QuranSettingsProvider } from "@/app/_hooks/QuranSettingsProvider";
 import { ReadingModeProvider } from "@/app/_hooks/ReadingModeProvider";
 import "@/app/globals.css";
 import { Metadata } from "next";
-import { Cairo, Lateef, Scheherazade_New } from "next/font/google";
+// import { Cairo, Lateef, Scheherazade_New } from "next/font/google";
 
-const cairo = Cairo({
-  subsets: ["arabic"],
-  variable: "--font-cairo",
-});
+// const cairo = Cairo({
+//   subsets: ["arabic"],
+//   variable: "--font-cairo",
+// });
 
-const lateef = Lateef({
-  subsets: ["arabic"],
-  weight: ["400", "700"],
-  variable: "--font-lateef",
-});
+// const lateef = Lateef({
+//   subsets: ["arabic"],
+//   weight: ["400", "700"],
+//   variable: "--font-lateef",
+// });
 
-const scheherazadeNew = Scheherazade_New({
-  subsets: ["arabic"],
-  weight: ["400", "700"],
-  variable: "--font-scheherazade",
-});
+// const scheherazadeNew = Scheherazade_New({
+//   subsets: ["arabic"],
+//   weight: ["400", "700"],
+//   variable: "--font-scheherazade",
+// });
 
 export const metadata: Metadata = {
   title: "القرآن الكريم - للقراءة والحفظ والمراجعة",
@@ -45,12 +45,12 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
-      { url: "/icons/icon-512x512.png", sizes: "512x512", type: "image/png" },
+      { url: "/icons/icon.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon.png", sizes: "512x512", type: "image/png" },
     ],
     apple: [
       {
-        url: "/icons/apple-icon-180x180.png",
+        url: "/icons/icon.png",
         sizes: "180x180",
         type: "image/png",
       },
@@ -66,14 +66,14 @@ export default function RootLayout({
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning>
       <head>
-        <link rel="apple-touch-icon" href="/icons/apple-icon-180x180.png" />
+        <link rel="apple-touch-icon" href="/icons/icon.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="القرآن الكريم" />
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body
-        className={`${cairo.variable} ${lateef.variable} ${scheherazadeNew.variable} antialiased`}
+      // className={`${cairo.variable} ${lateef.variable} ${scheherazadeNew.variable} antialiased`}
       >
         <QueryProvider>
           <ThemeProvider>

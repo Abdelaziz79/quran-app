@@ -69,7 +69,13 @@ export function MemorizationSidebar({
   );
 
   const handleSurahChange = (surahId: string) => {
+    // Call the parent handler immediately
     onSelectSurah(surahId);
+
+    // Ensure focus is removed from any select components
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
   };
 
   const handleVersesPerLessonChange = (value: number[]) => {

@@ -29,9 +29,11 @@ export function AyahOfTheDay() {
 
   if (isLoading) {
     return (
-      <div className="max-w-4xl mx-auto mt-8 mb-12">
-        <div className="text-center mb-6">
-          <h2 className="text-3xl font-bold mb-2">آية اليوم</h2>
+      <div className="max-w-4xl mx-auto mt-4 md:mt-8 mb-8 md:mb-12 px-2 sm:px-4">
+        <div className="text-center mb-4 md:mb-6">
+          <h2 className="text-2xl md:text-3xl font-bold mb-1 md:mb-2">
+            آية اليوم
+          </h2>
           <p className="text-muted-foreground">Ayah of the Day</p>
         </div>
         <div className="flex justify-center">
@@ -43,9 +45,11 @@ export function AyahOfTheDay() {
 
   if (error || !ayahData) {
     return (
-      <div className="max-w-4xl mx-auto mt-8 mb-12">
-        <div className="text-center mb-6">
-          <h2 className="text-3xl font-bold mb-2">آية اليوم</h2>
+      <div className="max-w-4xl mx-auto mt-4 md:mt-8 mb-8 md:mb-12 px-2 sm:px-4">
+        <div className="text-center mb-4 md:mb-6">
+          <h2 className="text-2xl md:text-3xl font-bold mb-1 md:mb-2">
+            آية اليوم
+          </h2>
           <p className="text-muted-foreground">Ayah of the Day</p>
         </div>
         <ErrorComp error={error || "Failed to load ayah"} />
@@ -69,17 +73,19 @@ export function AyahOfTheDay() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto mt-8 mb-12 px-4">
-      <div className="text-center mb-6">
-        <h2 className="text-3xl font-bold mb-2">آية اليوم</h2>
+    <div className="max-w-4xl mx-auto mt-4 md:mt-8 mb-8 md:mb-12 px-2 sm:px-4">
+      <div className="text-center mb-4 md:mb-6">
+        <h2 className="text-2xl md:text-3xl font-bold mb-1 md:mb-2">
+          آية اليوم
+        </h2>
         <p className="text-muted-foreground">Ayah of the Day</p>
       </div>
 
-      <div className="mb-6 bg-card shadow-md rounded-lg border overflow-hidden">
-        <div className="bg-primary/10 p-4 text-center">
+      <div className="mb-4 md:mb-6 bg-card shadow-md rounded-lg border overflow-hidden">
+        <div className="bg-primary/10 p-3 md:p-4 text-center">
           <Link
             href={`/surah/${ayahData.surahId}?ayah=${ayahData.ayahId}`}
-            className="text-xl font-semibold text-primary hover:underline"
+            className="text-lg md:text-xl font-semibold text-primary hover:underline"
           >
             {ayahData.surahName} ({toArabicDigits(parseInt(ayahData.surahId))}:
             {toArabicDigits(ayahData.ayahId)})
@@ -113,24 +119,27 @@ export function AyahOfTheDay() {
         </div>
       </div>
 
-      <div className="flex justify-center gap-4">
+      <div className="flex flex-wrap justify-center gap-2 md:gap-4">
         <Button
           onClick={() => setShowTranslation(!showTranslation)}
           variant="outline"
-          className="px-6"
+          className="px-3 md:px-6 text-sm md:text-base min-w-[120px]"
         >
           {showTranslation ? "إخفاء التفسير" : "إظهار التفسير"}
         </Button>
         <Button
           onClick={refresh}
           variant="secondary"
-          className="flex items-center gap-2 px-6"
+          className="flex items-center gap-1 md:gap-2 px-3 md:px-6 text-sm md:text-base min-w-[120px]"
         >
-          <RefreshCw size={16} />
+          <RefreshCw className="w-3.5 h-3.5 md:w-4 md:h-4" />
           <span>آية أخرى</span>
         </Button>
         <Link href={`/surah/${ayahData.surahId}?ayah=${ayahData.ayahId}`}>
-          <Button variant="default" className="px-6">
+          <Button
+            variant="default"
+            className="px-3 md:px-6 text-sm md:text-base min-w-[120px]"
+          >
             اقرأ السورة
           </Button>
         </Link>
