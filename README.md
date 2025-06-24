@@ -28,7 +28,7 @@ A modern web application for reading, memorizing, and reviewing the Holy Quran, 
 1. Clone the repository
 
    ```bash
-   git clone https://github.com/your-username/quran-project.git
+   git clone https://github.com/Abdelaziz79/quran-project.git
    cd quran-project
    ```
 
