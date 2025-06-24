@@ -79,7 +79,6 @@ The app is designed to work well on mobile devices with:
 - Responsive design for all screen sizes
 - Touch-friendly controls
 - PWA installation support
-- Offline functionality
 
 ## 🌐 API Integration
 
