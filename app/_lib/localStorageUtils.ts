@@ -220,12 +220,12 @@ export const saveQuranFontFamily = (fontFamily: QuranFontFamily): void => {
 
 // Load Quran font family
 export const loadQuranFontFamily = (): QuranFontFamily => {
-  if (typeof window === "undefined") return "KFGQPC";
+  if (typeof window === "undefined") return "Uthmani";
 
   const stored = localStorage.getItem(
     KEYS.QURAN_FONT_FAMILY
   ) as QuranFontFamily | null;
-  return stored || "KFGQPC"; // Default to KFGQPC
+  return stored || "Uthmani"; // Default to Uthmani
 };
 
 // Save Quran font size
